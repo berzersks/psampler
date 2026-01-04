@@ -6,6 +6,7 @@
 #include "php_psampler.h"
 #include <math.h>
 #include <zend_smart_str.h>
+#include <zend_exceptions.h>
 #include <string.h>
 
 #ifndef M_PI
@@ -180,11 +181,18 @@ static zend_object *lpcm_create(zend_class_entry *ce)
 
 PHP_METHOD(Resampler, __construct)
 {
-    zend_long src, dst;
-    ZEND_PARSE_PARAMETERS_START(2, 2)
+    zend_long src, dst, packet_size = 1024;
+    ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_LONG(src)
         Z_PARAM_LONG(dst)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(packet_size)
     ZEND_PARSE_PARAMETERS_END();
+
+    if (packet_size <= 0 || packet_size % 2 != 0) {
+        zend_throw_exception(NULL, "Packet size must be a positive even number of bytes", 0);
+        RETURN_THROWS();
+    }
 
     psampler_object *obj = PSAMPLER_OBJ(getThis());
     obj->src_rate = src;
@@ -193,7 +201,7 @@ PHP_METHOD(Resampler, __construct)
     obj->last_dc = 0.0;
     obj->frac_pos = 0.0;
     obj->pending_samples = 0;
-    obj->min_output_samples = 512; // Mínimo de amostras para pacote válido
+    obj->min_output_samples = (int)(packet_size / 2);
     
     // Aloca buffer interno
     obj->buffer_size = MAX_BUFFER_SIZE;
@@ -226,12 +234,30 @@ PHP_METHOD(Resampler, returnEmpty)
     
     // Verifica se há amostras pendentes suficientes para um pacote válido
     if (obj->pending_samples >= obj->min_output_samples) {
-        obj->pending_samples = 0;
+        obj->pending_samples -= obj->min_output_samples;
         RETURN_FALSE; // Retorna false indicando que há pacote válido disponível
     }
     
     // Retorna string vazia (pacote vazio) enquanto não há amostras suficientes
     RETURN_EMPTY_STRING();
+}
+
+PHP_METHOD(Resampler, setPacketSize)
+{
+    zend_long bytes;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(bytes)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (bytes <= 0 || bytes % 2 != 0) {
+        zend_throw_exception(NULL, "Packet size must be a positive even number of bytes", 0);
+        RETURN_THROWS();
+    }
+
+    psampler_object *obj = PSAMPLER_OBJ(getThis());
+    obj->min_output_samples = (int)(bytes / 2);
+    
+    RETURN_TRUE;
 }
 
 PHP_METHOD(Resampler, process)
@@ -317,7 +343,7 @@ PHP_METHOD(Resampler, process)
     }
     
     // Atualiza pending_samples para controle de returnEmpty()
-    obj->pending_samples = out_count;
+    obj->pending_samples += out_count;
     
     // Remove amostras processadas do buffer
     size_t consumed = (size_t)obj->frac_pos;
@@ -607,6 +633,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_construct, 0, 0, 2)
     ZEND_ARG_TYPE_INFO(0, srcRate, IS_LONG, 0)
     ZEND_ARG_TYPE_INFO(0, dstRate, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(0, packetSize, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_process, 0, 1, IS_STRING, 0)
@@ -616,11 +643,16 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_returnEmpty, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_setPacketSize, 0, 0, 1)
+    ZEND_ARG_TYPE_INFO(0, bytes, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry psampler_methods[] = {
     PHP_ME(Resampler, __construct, arginfo_construct, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, reset, arginfo_void, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, process, arginfo_process, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, returnEmpty, arginfo_returnEmpty, ZEND_ACC_PUBLIC)
+    PHP_ME(Resampler, setPacketSize, arginfo_setPacketSize, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

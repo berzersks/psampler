@@ -40,17 +40,33 @@ Retorna pacotes vazios até que haja amostras suficientes para um pacote válido
 ### Construtor
 
 ```php
-$resampler = new Resampler(int $srcRate, int $dstRate);
+$resampler = new Resampler(int $srcRate, int $dstRate, int $packetSize = 1024);
 ```
 
 **Parâmetros:**
 - `$srcRate`: Taxa de amostragem de entrada (Hz)
 - `$dstRate`: Taxa de amostragem de saída (Hz)
+- `$packetSize`: Tamanho mínimo do pacote em bytes para o método `returnEmpty()` (padrão 1024 bytes)
 
 **Exemplo:**
 ```php
-// Converte de 48kHz para 44.1kHz
-$resampler = new Resampler(48000, 44100);
+// Converte de 48kHz para 16kHz com pacotes de 320 bytes (padrão VoIP G.711/729)
+$resampler = new Resampler(48000, 16000, 320);
+```
+
+### setPacketSize(int $bytes): bool
+
+Define dinamicamente o tamanho mínimo do pacote em bytes.
+
+**Parâmetros:**
+- `$bytes`: Tamanho do pacote em bytes (deve ser par e positivo)
+
+**Retorno:**
+- `true` em caso de sucesso
+
+**Exemplo:**
+```php
+$resampler->setPacketSize(640);
 ```
 
 ### process(string $pcm): string
@@ -398,6 +414,29 @@ file_put_contents('audio_be.pcm', $dataBE);
 - **Validação de Canais**: Métodos mono/stereo validam a configuração
 - **Validação de Tamanho**: encodeStereo requer arrays de mesmo tamanho
 - **Extensão de Sinal**: Decodificação preserva valores negativos corretamente
+
+---
+
+## Simulação de Streaming com Swoole (Arquitetura Multi-processo)
+
+O script `test_swoole_stream.php` demonstra uma implementação robusta de streaming de áudio usando a extensão Swoole:
+
+1. **Separação de Responsabilidades**: Utiliza `Swoole\Process` para dividir a tarefa em dois processos independentes.
+2. **Processo Transmissor**:
+   - Lê o arquivo `audio.wav`.
+   - Realiza o resampling em tempo real para 16kHz (Wideband VoIP).
+   - Envia os dados resampleados através de um pipe inter-processo (IPC).
+   - Controla a cadência para simular exatamente a velocidade de transmissão de áudio real.
+3. **Processo Receptor**:
+   - Escuta o pipe do Swoole para receber os dados.
+   - Encaminha o fluxo diretamente para o `ffplay` para reprodução ao vivo.
+
+**Como usar:**
+```bash
+/home/lotus/PROJETOS/pcg729/buildroot/bin/php test_swoole_stream.php
+```
+
+Esta arquitetura simula de forma fidedigna um servidor de streaming ou gateway VoIP onde o processamento de áudio (resampling) e a entrega/reprodução ocorrem de forma assíncrona.
 
 ## Compilação
 
