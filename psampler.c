@@ -19,26 +19,29 @@
 static zend_class_entry *psampler_ce;
 static zend_class_entry *lpcm_ce;
 
-typedef struct {
+typedef struct _psampler_context {
     double ratio;
     double src_rate;
     double dst_rate;
     double last_dc;
     
-    // Buffer interno para continuidade entre chamadas
     int16_t *input_buffer;
     size_t buffer_size;
     size_t buffer_used;
     
-    // Posição fracionária para interpolação
     double frac_pos;
     
-    // Filtro polyphase pré-calculado
     double *filter_bank;
     int filter_length;
     int phases;
     
-    // Controle de pacotes vazios
+    struct _psampler_context *next;
+} psampler_context;
+
+typedef struct {
+    psampler_context *contexts;
+    psampler_context *current_context;
+    
     int pending_samples;
     int min_output_samples;
     
@@ -86,16 +89,16 @@ static double sinc(double x)
 }
 
 // Gera banco de filtros polyphase de alta qualidade
-static void generate_filter_bank(psampler_object *obj)
+static void generate_filter_bank(psampler_context *ctx)
 {
     int filter_len = FILTER_LENGTH;
     int phases = 256; // Número de fases para interpolação suave
     
-    obj->filter_length = filter_len;
-    obj->phases = phases;
-    obj->filter_bank = (double *)emalloc(filter_len * phases * sizeof(double));
+    ctx->filter_length = filter_len;
+    ctx->phases = phases;
+    ctx->filter_bank = (double *)emalloc(filter_len * phases * sizeof(double));
     
-    double cutoff = (obj->ratio < 1.0) ? obj->ratio : 1.0;
+    double cutoff = (ctx->ratio < 1.0) ? ctx->ratio : 1.0;
     cutoff *= 0.95; // Margem de segurança para anti-aliasing
     
     // Gera filtro sinc com janela Kaiser para cada fase
@@ -107,17 +110,50 @@ static void generate_filter_bank(psampler_object *obj)
             double t = i - (filter_len - 1) / 2.0 + phase_offset;
             double h = sinc(2.0 * cutoff * t) * 2.0 * cutoff;
             h *= kaiser_window(i, filter_len, KAISER_BETA);
-            obj->filter_bank[phase * filter_len + i] = h;
+            ctx->filter_bank[phase * filter_len + i] = h;
             sum += h;
         }
         
         // Normaliza para manter ganho unitário
         if (sum > 0.0) {
             for (int i = 0; i < filter_len; i++) {
-                obj->filter_bank[phase * filter_len + i] /= sum;
+                ctx->filter_bank[phase * filter_len + i] /= sum;
             }
         }
     }
+}
+
+static psampler_context *create_context(double src_rate, double dst_rate)
+{
+    psampler_context *ctx = (psampler_context *)emalloc(sizeof(psampler_context));
+    ctx->src_rate = src_rate;
+    ctx->dst_rate = dst_rate;
+    ctx->ratio = dst_rate / src_rate;
+    ctx->last_dc = 0.0;
+    ctx->frac_pos = 0.0;
+    
+    ctx->buffer_size = MAX_BUFFER_SIZE;
+    ctx->buffer_used = 0;
+    ctx->input_buffer = (int16_t *)emalloc(ctx->buffer_size * sizeof(int16_t));
+    memset(ctx->input_buffer, 0, ctx->buffer_size * sizeof(int16_t));
+    
+    ctx->filter_bank = NULL;
+    ctx->next = NULL;
+    
+    generate_filter_bank(ctx);
+    
+    return ctx;
+}
+
+static void free_context(psampler_context *ctx)
+{
+    if (ctx->input_buffer) {
+        efree(ctx->input_buffer);
+    }
+    if (ctx->filter_bank) {
+        efree(ctx->filter_bank);
+    }
+    efree(ctx);
 }
 
 // Destrutor para liberar memória
@@ -125,14 +161,11 @@ static void psampler_free(zend_object *object)
 {
     psampler_object *obj = (psampler_object *)((char *)object - XtOffsetOf(psampler_object, std));
     
-    if (obj->input_buffer) {
-        efree(obj->input_buffer);
-        obj->input_buffer = NULL;
-    }
-    
-    if (obj->filter_bank) {
-        efree(obj->filter_bank);
-        obj->filter_bank = NULL;
+    psampler_context *ctx = obj->contexts;
+    while (ctx) {
+        psampler_context *next = ctx->next;
+        free_context(ctx);
+        ctx = next;
     }
     
     zend_object_std_dtor(&obj->std);
@@ -148,8 +181,8 @@ static zend_object *psampler_create(zend_class_entry *ce)
     obj->std.handlers = &psampler_handlers;
     
     // Inicializa ponteiros
-    obj->input_buffer = NULL;
-    obj->filter_bank = NULL;
+    obj->contexts = NULL;
+    obj->current_context = NULL;
     
     return &obj->std;
 }
@@ -180,42 +213,40 @@ static zend_object *lpcm_create(zend_class_entry *ce)
 
 PHP_METHOD(Resampler, __construct)
 {
-    zend_long src, dst;
-    ZEND_PARSE_PARAMETERS_START(2, 2)
+    zend_long src = 0, dst = 0;
+    ZEND_PARSE_PARAMETERS_START(0, 2)
+        Z_PARAM_OPTIONAL
         Z_PARAM_LONG(src)
         Z_PARAM_LONG(dst)
     ZEND_PARSE_PARAMETERS_END();
 
     psampler_object *obj = PSAMPLER_OBJ(getThis());
-    obj->src_rate = src;
-    obj->dst_rate = dst;
-    obj->ratio = (double)dst / (double)src;
-    obj->last_dc = 0.0;
-    obj->frac_pos = 0.0;
     obj->pending_samples = 0;
     obj->min_output_samples = 512; // Mínimo de amostras para pacote válido
     
-    // Aloca buffer interno
-    obj->buffer_size = MAX_BUFFER_SIZE;
-    obj->buffer_used = 0;
-    obj->input_buffer = (int16_t *)emalloc(obj->buffer_size * sizeof(int16_t));
-    memset(obj->input_buffer, 0, obj->buffer_size * sizeof(int16_t));
-    
-    // Gera banco de filtros polyphase de alta qualidade
-    generate_filter_bank(obj);
+    // Se as taxas forem fornecidas, cria o primeiro contexto
+    if (src > 0 && dst > 0) {
+        psampler_context *ctx = create_context((double)src, (double)dst);
+        obj->contexts = ctx;
+        obj->current_context = ctx;
+    }
 }
 
 PHP_METHOD(Resampler, reset)
 {
     psampler_object *obj = PSAMPLER_OBJ(getThis());
-    obj->last_dc = 0.0;
-    obj->frac_pos = 0.0;
-    obj->buffer_used = 0;
-    obj->pending_samples = 0;
     
-    if (obj->input_buffer) {
-        memset(obj->input_buffer, 0, obj->buffer_size * sizeof(int16_t));
+    // O usuário solicitou que reset() limpe os contextos/estados
+    psampler_context *ctx = obj->contexts;
+    while (ctx) {
+        psampler_context *next = ctx->next;
+        free_context(ctx);
+        ctx = next;
     }
+    
+    obj->contexts = NULL;
+    obj->current_context = NULL;
+    obj->pending_samples = 0;
     
     RETURN_TRUE;
 }
@@ -234,14 +265,61 @@ PHP_METHOD(Resampler, returnEmpty)
     RETURN_EMPTY_STRING();
 }
 
-PHP_METHOD(Resampler, process)
+PHP_METHOD(Resampler, sample)
 {
     zend_string *input;
-    ZEND_PARSE_PARAMETERS_START(1, 1)
+    zend_long src = 0, dst = 0;
+    
+    ZEND_PARSE_PARAMETERS_START(1, 3)
         Z_PARAM_STR(input)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(src)
+        Z_PARAM_LONG(dst)
     ZEND_PARSE_PARAMETERS_END();
 
     psampler_object *obj = PSAMPLER_OBJ(getThis());
+    psampler_context *ctx = obj->current_context;
+    
+    // Se novas taxas forem fornecidas, busca ou cria o contexto correspondente
+    if (src > 0 && dst > 0) {
+        // Se as taxas fornecidas são as do contexto atual, não faz nada
+        if (ctx && (zend_long)ctx->src_rate == src && (zend_long)ctx->dst_rate == dst) {
+            // Já estamos no contexto correto
+        } else {
+            // Procura na lista de contextos
+            psampler_context *curr = obj->contexts;
+            psampler_context *prev = NULL;
+            while (curr) {
+                if ((zend_long)curr->src_rate == src && (zend_long)curr->dst_rate == dst) {
+                    break;
+                }
+                prev = curr;
+                curr = curr->next;
+            }
+            
+            if (curr) {
+                // Contexto encontrado
+                obj->current_context = curr;
+                ctx = curr;
+            } else {
+                // Cria novo contexto e adiciona à lista
+                ctx = create_context((double)src, (double)dst);
+                if (prev) {
+                    prev->next = ctx;
+                } else {
+                    obj->contexts = ctx;
+                }
+                obj->current_context = ctx;
+            }
+        }
+    }
+    
+    // Verifica se temos um contexto válido
+    if (!ctx) {
+        php_error_docref(NULL, E_WARNING, "Resampler not initialized with valid sample rates.");
+        RETURN_EMPTY_STRING();
+    }
+
     const int16_t *new_samples = (const int16_t *)ZSTR_VAL(input);
     size_t new_count = ZSTR_LEN(input) / 2;
     
@@ -249,22 +327,22 @@ PHP_METHOD(Resampler, process)
         RETURN_EMPTY_STRING();
     }
     
-    // Adiciona novas amostras ao buffer interno
-    size_t space_available = obj->buffer_size - obj->buffer_used;
+    // Adiciona novas amostras ao buffer interno do contexto
+    size_t space_available = ctx->buffer_size - ctx->buffer_used;
     size_t to_copy = (new_count < space_available) ? new_count : space_available;
     
     if (to_copy > 0) {
-        memcpy(obj->input_buffer + obj->buffer_used, new_samples, to_copy * sizeof(int16_t));
-        obj->buffer_used += to_copy;
+        memcpy(ctx->input_buffer + ctx->buffer_used, new_samples, to_copy * sizeof(int16_t));
+        ctx->buffer_used += to_copy;
     }
     
     // Calcula quantas amostras de saída podemos gerar
-    int filter_half = obj->filter_length / 2;
-    double step = 1.0 / obj->ratio;
+    int filter_half = ctx->filter_length / 2;
+    double step = 1.0 / ctx->ratio;
     size_t max_out_samples = 0;
     
-    if (obj->buffer_used > filter_half) {
-        max_out_samples = (size_t)((obj->buffer_used - filter_half) * obj->ratio);
+    if (ctx->buffer_used > filter_half) {
+        max_out_samples = (size_t)((ctx->buffer_used - filter_half) * ctx->ratio);
     }
     
     if (max_out_samples == 0) {
@@ -278,32 +356,32 @@ PHP_METHOD(Resampler, process)
     
     // Processa com filtro polyphase de alta qualidade
     while (out_count < max_out_samples) {
-        size_t base_idx = (size_t)obj->frac_pos;
+        size_t base_idx = (size_t)ctx->frac_pos;
         
         // Verifica se temos amostras suficientes no buffer
-        if (base_idx + filter_half >= obj->buffer_used) {
+        if (base_idx + filter_half >= ctx->buffer_used) {
             break;
         }
         
         // Calcula índice da fase do filtro
-        double frac = obj->frac_pos - base_idx;
-        int phase_idx = (int)(frac * obj->phases);
-        if (phase_idx >= obj->phases) phase_idx = obj->phases - 1;
+        double frac = ctx->frac_pos - base_idx;
+        int phase_idx = (int)(frac * ctx->phases);
+        if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
         
         // Aplica filtro polyphase
         double sample = 0.0;
-        double *filter = &obj->filter_bank[phase_idx * obj->filter_length];
+        double *filter = &ctx->filter_bank[phase_idx * ctx->filter_length];
         
-        for (int i = 0; i < obj->filter_length; i++) {
+        for (int i = 0; i < ctx->filter_length; i++) {
             int src_idx = (int)base_idx - filter_half + i;
-            if (src_idx >= 0 && src_idx < (int)obj->buffer_used) {
-                sample += obj->input_buffer[src_idx] * filter[i];
+            if (src_idx >= 0 && src_idx < (int)ctx->buffer_used) {
+                sample += ctx->input_buffer[src_idx] * filter[i];
             }
         }
         
         // Remoção de DC offset aprimorada (filtro passa-alta de 1 polo)
-        obj->last_dc = 0.9995 * obj->last_dc + 0.0005 * sample;
-        sample -= obj->last_dc;
+        ctx->last_dc = 0.9995 * ctx->last_dc + 0.0005 * sample;
+        sample -= ctx->last_dc;
         
         // Clipping suave (soft clipping) para evitar distorção
         if (sample > 32767.0) sample = 32767.0;
@@ -312,32 +390,61 @@ PHP_METHOD(Resampler, process)
         int16_t out_sample = (int16_t)lrint(sample);
         smart_str_appendl(&out, (char *)&out_sample, 2);
         
-        obj->frac_pos += step;
+        ctx->frac_pos += step;
         out_count++;
     }
     
     // Atualiza pending_samples para controle de returnEmpty()
-    obj->pending_samples = out_count;
+    obj->pending_samples = (int)out_count;
     
     // Remove amostras processadas do buffer
-    size_t consumed = (size_t)obj->frac_pos;
-    if (consumed > 0 && consumed < obj->buffer_used) {
-        obj->frac_pos -= consumed;
-        memmove(obj->input_buffer, obj->input_buffer + consumed, 
-                (obj->buffer_used - consumed) * sizeof(int16_t));
-        obj->buffer_used -= consumed;
-    } else if (consumed >= obj->buffer_used) {
-        obj->buffer_used = 0;
-        obj->frac_pos = 0.0;
+    size_t consumed = (size_t)ctx->frac_pos;
+    if (consumed > 0 && consumed < ctx->buffer_used) {
+        ctx->frac_pos -= consumed;
+        memmove(ctx->input_buffer, ctx->input_buffer + consumed, 
+                (ctx->buffer_used - consumed) * sizeof(int16_t));
+        ctx->buffer_used -= consumed;
+    } else if (consumed >= ctx->buffer_used) {
+        ctx->buffer_used = 0;
+        ctx->frac_pos = 0.0;
     }
     
     smart_str_0(&out);
     
     if (out_count == 0) {
+        smart_str_free(&out);
         RETURN_EMPTY_STRING();
     }
     
     RETURN_STR(out.s);
+}
+
+PHP_METHOD(Resampler, process)
+{
+    // Alias para manter compatibilidade, chama sample internamente sem trocar taxas
+    zend_string *input;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(input)
+    ZEND_PARSE_PARAMETERS_END();
+
+    psampler_object *obj = PSAMPLER_OBJ(getThis());
+    psampler_context *ctx = obj->current_context;
+    
+    if (!ctx) {
+        php_error_docref(NULL, E_WARNING, "Resampler not initialized with valid sample rates.");
+        RETURN_EMPTY_STRING();
+    }
+
+    // Chama sample internamente com as taxas do contexto atual
+    zval method_name, params[3];
+    ZVAL_STRING(&method_name, "sample");
+    ZVAL_STR(&params[0], input);
+    ZVAL_LONG(&params[1], (zend_long)ctx->src_rate);
+    ZVAL_LONG(&params[2], (zend_long)ctx->dst_rate);
+
+    call_user_function(NULL, getThis(), &method_name, return_value, 3, params);
+    
+    zval_ptr_dtor(&method_name);
 }
 
 // ============================================================================
@@ -604,9 +711,15 @@ PHP_METHOD(LPCM, decodeStereo)
 ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_construct, 0, 0, 2)
-    ZEND_ARG_TYPE_INFO(0, srcRate, IS_LONG, 0)
-    ZEND_ARG_TYPE_INFO(0, dstRate, IS_LONG, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_construct, 0, 0, 0)
+    ZEND_ARG_TYPE_INFO(0, srcRate, IS_LONG, 1)
+    ZEND_ARG_TYPE_INFO(0, dstRate, IS_LONG, 1)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_sample, 0, 1, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, pcm, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, srcRate, IS_LONG, 1)
+    ZEND_ARG_TYPE_INFO(0, dstRate, IS_LONG, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_process, 0, 1, IS_STRING, 0)
@@ -619,6 +732,7 @@ ZEND_END_ARG_INFO()
 static const zend_function_entry psampler_methods[] = {
     PHP_ME(Resampler, __construct, arginfo_construct, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, reset, arginfo_void, ZEND_ACC_PUBLIC)
+    PHP_ME(Resampler, sample, arginfo_sample, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, process, arginfo_process, ZEND_ACC_PUBLIC)
     PHP_ME(Resampler, returnEmpty, arginfo_returnEmpty, ZEND_ACC_PUBLIC)
     PHP_FE_END

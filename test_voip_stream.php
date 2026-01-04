@@ -10,18 +10,18 @@
  */
 
 // Carrega a extensão
-if (!extension_loaded('psampler')) {
-    $extPath = realpath(__DIR__ . '/.libs/psampler.so');
-    if (!dl($extPath)) {
-        die("Erro: Não foi possível carregar a extensão psampler em $extPath\n");
-    }
-}
+// if (!extension_loaded('psampler')) {
+//     $extPath = realpath(__DIR__ . '/.libs/psampler.so');
+//     if (!dl($extPath)) {
+//         die("Erro: Não foi possível carregar a extensão psampler em $extPath\n");
+//     }
+// }
 
 // Configurações
 $INPUT_FILE = 'audio.wav';
-$TARGET_SAMPLE_RATE = 16000; // Taxa típica de VoIP (Wideband)
+$TARGET_SAMPLE_RATE = 8000; // Taxa típica de VoIP (Wideband)
 $CHANNELS = 1;               // VoIP é geralmente mono
-$CHUNK_SAMPLES = 320;        // 20ms de áudio a 16kHz (comum em VoIP/RTP)
+$CHUNK_SAMPLES = 320*1;        // 20ms de áudio a 16kHz (comum em VoIP/RTP)
 
 if (!file_exists($INPUT_FILE)) {
     die("Erro: Arquivo de entrada $INPUT_FILE não encontrado.\n");
