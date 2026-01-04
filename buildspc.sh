@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cd /home/lotus/PROJETOS/pcg729
 bin/spc del-download psampler
 rm -rf source/php-src/ext/psampler
