@@ -75,11 +75,14 @@ remove_pattern "*.wav"
 
 # Logs e outputs
 remove_item "valgrind.log"
+remove_item "build"
+remove_item "include"
 remove_item ".output.txt"
 
 # Arquivos temporários do PHP
 remove_pattern "*.tmp"
 remove_pattern ".*.swp"
+remove_pattern "cmake-*"
 remove_pattern "*~"
 
 echo ""
