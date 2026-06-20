@@ -1,0 +1,116 @@
+# ==========================================================================
+# .gitignore rígido para extensão PHP (psampler) compilada localmente
+# Evita que artefatos de build atrapalhem os commits
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# Artefatos de compilação C / objetos / bibliotecas
+# --------------------------------------------------------------------------
+*.o
+*.lo
+*.la
+*.slo
+*.so
+*.so.*
+*.dylib
+*.dll
+*.a
+*.lib
+*.obj
+*.exp
+*.ilk
+*.pdb
+*.gcno
+*.gcda
+*.gcov
+*.d
+
+# --------------------------------------------------------------------------
+# phpize / autoconf / libtool (build de extensão PHP)
+# --------------------------------------------------------------------------
+.libs/
+.deps/
+acinclude.m4
+aclocal.m4
+autom4te.cache/
+build/
+config.cache
+config.guess
+config.h
+config.h.in
+config.h.in~
+config.log
+config.nice
+config.status
+config.sub
+configure
+configure.in
+configure.scan
+include/
+install-sh
+libtool
+ltmain.sh
+Makefile
+Makefile.fragments
+Makefile.global
+Makefile.objects
+missing
+mkinstalldirs
+modules/
+run-tests.php.bak
+tmp-php.ini
+
+# Resultados de testes do PHP (run-tests.php)
+*.diff
+*.log
+*.mem
+*.out
+*.php.diff
+php_test_results_*.txt
+tests/*/*.diff
+tests/*/*.out
+tests/*/*.exp
+tests/*/*.log
+tests/*/*.mem
+tests/*/*.php
+tests/*/*.sh
+
+# --------------------------------------------------------------------------
+# CMake / CLion
+# --------------------------------------------------------------------------
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+_deps/
+*.cmake
+
+# --------------------------------------------------------------------------
+# IDE (JetBrains / CLion)
+# --------------------------------------------------------------------------
+.idea/
+*.iml
+*.iws
+
+# --------------------------------------------------------------------------
+# Editores / temporários do sistema
+# --------------------------------------------------------------------------
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.rej
+.DS_Store
+Thumbs.db
+
+# --------------------------------------------------------------------------
+# Logs e arquivos de saída diversos
+# --------------------------------------------------------------------------
+core
+core.*
+vgcore.*
