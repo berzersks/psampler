@@ -29,6 +29,7 @@
 # phpize / autoconf / libtool (build de extensão PHP)
 # --------------------------------------------------------------------------
 .libs/
+*.dep
 .deps/
 acinclude.m4
 aclocal.m4
