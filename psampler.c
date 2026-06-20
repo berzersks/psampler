@@ -882,6 +882,53 @@ PHP_MINIT_FUNCTION(psampler)
     return SUCCESS;
 }
 
+// ==========================================================================
+// PHP_MINFO_FUNCTION: informacoes exibidas em phpinfo() e `php --ri psampler`
+// ==========================================================================
+PHP_MINFO_FUNCTION(psampler)
+{
+    php_info_print_table_start();
+    php_info_print_table_header(2, "psampler support", "enabled");
+    php_info_print_table_row(2, "Version", PHP_PSAMPLER_VERSION);
+    php_info_print_table_row(2, "Description",
+        "Reamostragem (resampling) e manipulacao de audio PCM linear (LPCM) 16-bit");
+    php_info_print_table_row(2, "Author", "psampler");
+    php_info_print_table_end();
+
+    // Classes expostas ao userland
+    php_info_print_table_start();
+    php_info_print_table_header(2, "Classe", "Metodos / API");
+    php_info_print_table_row(2, "Resampler",
+        "__construct(?int srcRate, ?int dstRate), reset(): void, "
+        "sample(string pcm, ?int srcRate, ?int dstRate): string, "
+        "process(string pcm): string, returnEmpty(): string|false");
+    php_info_print_table_row(2, "LPCM",
+        "__construct(int channels, int bitDepth, bool isBigEndian=false), "
+        "encodeMono(array): string, decodeMono(string): array, "
+        "encodeStereo(array, array): string, decodeStereo(string): array");
+    php_info_print_table_end();
+
+    // Funcoes globais expostas ao userland
+    php_info_print_table_start();
+    php_info_print_table_header(2, "Funcao global", "Assinatura");
+    php_info_print_table_row(2, "interleavePcmStereo",
+        "interleavePcmStereo(string leftPcm, string rightPcm): string|false "
+        "- intercala dois canais PCM 16-bit (L/R) em stream estereo");
+    php_info_print_table_end();
+
+    // Detalhes internos de DSP / configuracao do filtro
+    php_info_print_table_start();
+    php_info_print_table_header(2, "Parametro de DSP", "Valor");
+    php_info_print_table_row(2, "Filtro", "sinc janelado por Kaiser (polyphase)");
+    php_info_print_table_row(2, "FILTER_LENGTH", "64");
+    php_info_print_table_row(2, "KAISER_BETA", "8.6");
+    php_info_print_table_row(2, "Fases polyphase", "256");
+    php_info_print_table_row(2, "MAX_BUFFER_SIZE", "8192 amostras");
+    php_info_print_table_row(2, "Pos-processamento",
+        "remocao de DC offset (passa-alta 1 polo) + soft clipping [-32768, 32767]");
+    php_info_print_table_end();
+}
+
 zend_module_entry psampler_module_entry = {
     STANDARD_MODULE_HEADER,
     "psampler",
@@ -890,7 +937,7 @@ zend_module_entry psampler_module_entry = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    PHP_MINFO(psampler),
     PHP_PSAMPLER_VERSION,
     STANDARD_MODULE_PROPERTIES
 };
