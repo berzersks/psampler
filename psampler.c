@@ -708,6 +708,82 @@ PHP_METHOD(LPCM, decodeStereo)
     add_next_index_zval(return_value, &right_array);
 }
 
+// ==========================================================================
+// Funcao global: interleavePcmStereo
+// Intercala dois canais PCM 16-bit (L e R) em um stream estereo intercalado.
+// Regras:
+//   1) left/right devem ter tamanho multiplo de 2 (samples de 16 bits),
+//      caso contrario retorna false (PCM quebrado nao merece carinho).
+//   2) usa o maior numero de samples entre L e R; lado que acabar -> 0.
+//   3) saida = max_samples * 4 bytes (2 bytes L + 2 bytes R).
+//   4) sample_rate nao e responsabilidade desta funcao.
+//   5) string vazia e tratada como silencio.
+// ==========================================================================
+PHP_FUNCTION(interleavePcmStereo)
+{
+    zend_string *left;
+    zend_string *right;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STR(left)
+        Z_PARAM_STR(right)
+    ZEND_PARSE_PARAMETERS_END();
+
+    size_t left_len = ZSTR_LEN(left);
+    size_t right_len = ZSTR_LEN(right);
+
+    // Regra 1: tamanho deve ser multiplo de 2 (sample de 16 bits)
+    if ((left_len % 2) != 0 || (right_len % 2) != 0) {
+        php_error_docref(NULL, E_WARNING,
+            "interleavePcmStereo: PCM length must be a multiple of 2 bytes (16-bit samples).");
+        RETURN_FALSE;
+    }
+
+    size_t left_samples = left_len / 2;
+    size_t right_samples = right_len / 2;
+
+    // Regra 2: usa o maior numero de samples entre os dois canais
+    size_t max_samples = (left_samples > right_samples) ? left_samples : right_samples;
+
+    // Regra 5: ambos vazios -> silencio total -> string vazia
+    if (max_samples == 0) {
+        RETURN_EMPTY_STRING();
+    }
+
+    // Regra 3: saida = max_samples * 4 bytes
+    size_t out_len = max_samples * 4;
+    zend_string *out = zend_string_alloc(out_len, 0);
+    char *dst = ZSTR_VAL(out);
+
+    const char *lsrc = ZSTR_VAL(left);
+    const char *rsrc = ZSTR_VAL(right);
+
+    for (size_t i = 0; i < max_samples; i++) {
+        // Canal esquerdo (escreve 0 se o lado ja acabou)
+        if (i < left_samples) {
+            dst[i * 4]     = lsrc[i * 2];
+            dst[i * 4 + 1] = lsrc[i * 2 + 1];
+        } else {
+            dst[i * 4]     = 0;
+            dst[i * 4 + 1] = 0;
+        }
+        // Canal direito (escreve 0 se o lado ja acabou)
+        if (i < right_samples) {
+            dst[i * 4 + 2] = rsrc[i * 2];
+            dst[i * 4 + 3] = rsrc[i * 2 + 1];
+        } else {
+            dst[i * 4 + 2] = 0;
+            dst[i * 4 + 3] = 0;
+        }
+    }
+
+    // zend_string_alloc reserva out_len + 1 para o terminador
+    ZSTR_VAL(out)[out_len] = '\0';
+
+    // RETURN_STR transfere a posse de 'out' para o engine (sem vazamento)
+    RETURN_STR(out);
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -728,6 +804,16 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_returnEmpty, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_interleavePcmStereo, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, leftPcm, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, rightPcm, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry psampler_functions[] = {
+    PHP_FE(interleavePcmStereo, arginfo_interleavePcmStereo)
+    PHP_FE_END
+};
 
 static const zend_function_entry psampler_methods[] = {
     PHP_ME(Resampler, __construct, arginfo_construct, ZEND_ACC_PUBLIC)
@@ -799,7 +885,7 @@ PHP_MINIT_FUNCTION(psampler)
 zend_module_entry psampler_module_entry = {
     STANDARD_MODULE_HEADER,
     "psampler",
-    NULL,
+    psampler_functions,
     PHP_MINIT(psampler),
     NULL,
     NULL,
