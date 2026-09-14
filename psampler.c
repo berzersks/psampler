@@ -784,6 +784,55 @@ PHP_FUNCTION(interleavePcmStereo)
     RETURN_STR(out);
 }
 
+// ==========================================================================
+// Funcao global: monoToStereo
+// Duplica cada amostra PCM 16-bit mono nos canais esquerdo e direito.
+// ==========================================================================
+PHP_FUNCTION(monoToStereo)
+{
+    zend_string *pcm_data;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(pcm_data)
+    ZEND_PARSE_PARAMETERS_END();
+
+    const size_t pcm_len = ZSTR_LEN(pcm_data);
+
+    if (pcm_len == 0) {
+        RETURN_EMPTY_STRING();
+    }
+
+    // Uma amostra PCM16 incompleta nao pode ser lida com seguranca.
+    if (UNEXPECTED((pcm_len % 2) != 0)) {
+        zend_argument_value_error(1,
+            "must contain complete 16-bit samples (length must be a multiple of 2 bytes)");
+        RETURN_THROWS();
+    }
+
+    // Impede wraparound em pcm_len * 2 e uma alocacao menor que a escrita.
+    if (UNEXPECTED(pcm_len > (ZSTR_MAX_LEN / 2))) {
+        zend_argument_value_error(1, "is too large to convert to stereo");
+        RETURN_THROWS();
+    }
+
+    const size_t out_len = pcm_len * 2;
+    zend_string *out = zend_string_alloc(out_len, 0);
+    const unsigned char *src = (const unsigned char *)ZSTR_VAL(pcm_data);
+    unsigned char *dst = (unsigned char *)ZSTR_VAL(out);
+
+    for (size_t src_offset = 0, dst_offset = 0;
+         src_offset < pcm_len;
+         src_offset += 2, dst_offset += 4) {
+        dst[dst_offset] = src[src_offset];
+        dst[dst_offset + 1] = src[src_offset + 1];
+        dst[dst_offset + 2] = src[src_offset];
+        dst[dst_offset + 3] = src[src_offset + 1];
+    }
+
+    ZSTR_VAL(out)[out_len] = '\0';
+    RETURN_STR(out);
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -810,8 +859,13 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_interleavePcmStereo, 0, 2, MAY_B
     ZEND_ARG_TYPE_INFO(0, rightPcm, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_monoToStereo, 0, 1, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, pcmData, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry psampler_functions[] = {
     PHP_FE(interleavePcmStereo, arginfo_interleavePcmStereo)
+    PHP_FE(monoToStereo, arginfo_monoToStereo)
     PHP_FE_END
 };
 
@@ -914,6 +968,9 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "interleavePcmStereo",
         "interleavePcmStereo(string leftPcm, string rightPcm): string|false "
         "- intercala dois canais PCM 16-bit (L/R) em stream estereo");
+    php_info_print_table_row(2, "monoToStereo",
+        "monoToStereo(string pcmData): string "
+        "- duplica cada amostra PCM 16-bit mono nos canais L/R");
     php_info_print_table_end();
 
     // Detalhes internos de DSP / configuracao do filtro

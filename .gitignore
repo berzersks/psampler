@@ -115,3 +115,7 @@ Thumbs.db
 core
 core.*
 vgcore.*
+*.wav
+php
+monoToStereoGo
+mono_to_stereocpp

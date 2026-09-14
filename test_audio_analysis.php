@@ -6,7 +6,7 @@ if (!extension_loaded('psampler')) {
 }
 
 // Configurações
-$INPUT_FILE = 'output_8000hz_mono.wav';
+$INPUT_FILE = 'music_mono_8000.wav';
 $TEST_SAMPLE_RATE = 22050; // Taxa de saída para teste
 $CHUNK_SIZE = 4096;
 $THRESHOLD_CLIPPING = 32000; // Threshold para detectar clipping

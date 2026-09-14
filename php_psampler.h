@@ -6,7 +6,7 @@
  *
  * VISAO GERAL
  * -----------
- * Esta extensao expoe ao userland PHP duas classes e uma funcao global,
+ * Esta extensao expoe ao userland PHP duas classes e duas funcoes globais,
  * todas voltadas para processamento de audio PCM de 16 bits (signed,
  * little-endian no fluxo intercalado de saida):
  *
@@ -22,6 +22,10 @@
  *   3) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
  *                       -> intercala dois canais PCM 16-bit (L e R) em um
  *                          unico stream estereo intercalado.
+ *
+ *   4) function monoToStereo(string $pcmData): string
+ *                       -> duplica cada amostra PCM 16-bit mono nos canais
+ *                          esquerdo e direito de um stream estereo.
  *
  * --------------------------------------------------------------------------
  * API: class Resampler
@@ -87,6 +91,14 @@
  *         5) string vazia e tratada como silencio.
  *
  * --------------------------------------------------------------------------
+ * API: funcao global monoToStereo
+ * --------------------------------------------------------------------------
+ *   monoToStereo(string $pcmData): string
+ *       Converte PCM 16-bit mono em estereo intercalado, duplicando cada
+ *       amostra nos canais L/R. Uma entrada de tamanho impar lanca ValueError,
+ *       pois contem uma amostra PCM16 incompleta.
+ *
+ * --------------------------------------------------------------------------
  * DETALHES INTERNOS DE DSP
  * --------------------------------------------------------------------------
  *   - Filtro: sinc janelado por Kaiser (FILTER_LENGTH=64, KAISER_BETA=8.6),
@@ -118,8 +130,9 @@ extern zend_module_entry psampler_module_entry;
  *   0.1.0 - Versao inicial: classes Resampler e LPCM.
  *   0.2.0 - Adicionada a funcao global interleavePcmStereo() e registro da
  *           tabela de funcoes do modulo.
+ *   0.3.0 - Adicionada a funcao global monoToStereo().
  */
-#define PHP_PSAMPLER_VERSION "0.2.0"
+#define PHP_PSAMPLER_VERSION "0.3.0"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)
