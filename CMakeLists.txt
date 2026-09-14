@@ -7,6 +7,8 @@ include_directories(.)
 
 add_executable(psampler
         config.m4
+        byte_buffer.c
+        byte_buffer.h
         php_psampler.h
         psampler.c
         README.md)

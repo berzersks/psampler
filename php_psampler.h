@@ -6,7 +6,7 @@
  *
  * VISAO GERAL
  * -----------
- * Esta extensao expoe ao userland PHP duas classes e duas funcoes globais,
+ * Esta extensao expoe ao userland PHP tres classes e duas funcoes globais,
  * todas voltadas para processamento de audio PCM de 16 bits (signed,
  * little-endian no fluxo intercalado de saida):
  *
@@ -19,11 +19,15 @@
  *                          (mono e estereo) com largura de bits (8/16/24/32),
  *                          numero de canais e endianness configuraveis.
  *
- *   3) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
+ *   3) class ByteBuffer -> fila mutavel de bytes com armazenamento circular,
+ *                          crescimento geometrico e remocao sem copiar o
+ *                          restante dos dados.
+ *
+ *   4) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
  *                       -> intercala dois canais PCM 16-bit (L e R) em um
  *                          unico stream estereo intercalado.
  *
- *   4) function monoToStereo(string $pcmData): string
+ *   5) function monoToStereo(string $pcmData): string
  *                       -> duplica cada amostra PCM 16-bit mono nos canais
  *                          esquerdo e direito de um stream estereo.
  *
@@ -74,6 +78,19 @@
  *
  *   decodeStereo(string $pcmData): array
  *       Decodifica PCM estereo em [arrayEsquerdo, arrayDireito].
+ *
+ * --------------------------------------------------------------------------
+ * API: class ByteBuffer
+ * --------------------------------------------------------------------------
+ *   __construct(int $initialCapacity = 4096)
+ *   append(string $data): void
+ *   length(): int
+ *   has(int $bytes): bool
+ *   pop(int $bytes): string
+ *   peek(int $bytes): string
+ *   discard(int $bytes): void
+ *   clear(): void
+ *   capacity(): int
  *
  * --------------------------------------------------------------------------
  * API: funcao global interleavePcmStereo
@@ -131,8 +148,9 @@ extern zend_module_entry psampler_module_entry;
  *   0.2.0 - Adicionada a funcao global interleavePcmStereo() e registro da
  *           tabela de funcoes do modulo.
  *   0.3.0 - Adicionada a funcao global monoToStereo().
+ *   0.4.0 - Adicionada a classe ByteBuffer com armazenamento circular.
  */
-#define PHP_PSAMPLER_VERSION "0.3.0"
+#define PHP_PSAMPLER_VERSION "0.4.0"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)

@@ -4,6 +4,7 @@
 
 #include "php.h"
 #include "php_psampler.h"
+#include "byte_buffer.h"
 #include <math.h>
 #include <zend_smart_str.h>
 #include <string.h>
@@ -932,6 +933,8 @@ PHP_MINIT_FUNCTION(psampler)
     INIT_CLASS_ENTRY(ce, "LPCM", lpcm_methods);
     lpcm_ce = zend_register_internal_class(&ce);
     lpcm_ce->create_object = lpcm_create;
+
+    psampler_register_byte_buffer_class();
     
     return SUCCESS;
 }
@@ -960,6 +963,10 @@ PHP_MINFO_FUNCTION(psampler)
         "__construct(int channels, int bitDepth, bool isBigEndian=false), "
         "encodeMono(array): string, decodeMono(string): array, "
         "encodeStereo(array, array): string, decodeStereo(string): array");
+    php_info_print_table_row(2, "ByteBuffer",
+        "__construct(int initialCapacity=4096), append(string): void, "
+        "length(): int, has(int): bool, pop(int): string, peek(int): string, "
+        "discard(int): void, clear(): void, capacity(): int");
     php_info_print_table_end();
 
     // Funcoes globais expostas ao userland

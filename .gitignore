@@ -115,7 +115,16 @@ Thumbs.db
 core
 core.*
 vgcore.*
+perf.data
+perf.data.old
+perf-flat.txt
 *.wav
-php
-monoToStereoGo
-mono_to_stereocpp
+*.pcm
+
+# Executáveis gerados localmente
+/php
+/bf
+/monoToStereoGo
+/mono_to_stereocpp
+/voice_benchmark_go
+/voice_benchmark_go_debug

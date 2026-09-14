@@ -2,6 +2,10 @@
 
 Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmpeg.
 
+Também expõe `ByteBuffer`, uma fila binária mutável implementada como ring
+buffer para acumular e consumir frames sem copiar os bytes restantes a cada
+leitura.
+
 ## Melhorias Implementadas
 
 ### 🎯 Qualidade de Áudio (Nível FFmpeg)
@@ -35,7 +39,36 @@ Retorna pacotes vazios até que haja amostras suficientes para um pacote válido
 - Retorna `false` quando há um pacote válido disponível
 - Útil para sincronização e controle de fluxo de áudio
 
-## API
+## ByteBuffer
+
+### Uso
+
+```php
+$buffer = new ByteBuffer(4096);
+$buffer->append($pcm);
+
+while ($buffer->has($frameBytes)) {
+    $frame = $buffer->pop($frameBytes);
+    // codifica e envia $frame
+}
+```
+
+A classe oferece:
+
+- `append(string $data): void`: acrescenta bytes ao final;
+- `length(): int`: informa quantos bytes podem ser lidos;
+- `has(int $bytes): bool`: verifica se uma quantidade está disponível;
+- `pop(int $bytes): string`: copia e remove os primeiros bytes;
+- `peek(int $bytes): string`: copia sem remover;
+- `discard(int $bytes): void`: remove sem criar uma string de retorno;
+- `clear(): void`: esvazia preservando a alocação para reutilização;
+- `capacity(): int`: informa a capacidade atualmente alocada.
+
+Quantidades negativas e leituras maiores que `length()` lançam `ValueError`.
+A capacidade cresce geometricamente quando necessário. A classe é final e
+não permite clone ou serialização, porque seu estado reside em memória nativa.
+
+## API do Resampler
 
 ### Construtor
 
