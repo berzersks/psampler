@@ -1,0 +1,24 @@
+File: pcmgo-unified
+Build ID: a8ced66120f2e9f50b2e35022df1d2bc2874c525
+Type: cpu
+Time: 2026-09-25 00:58:01 -04
+Duration: 4.95s, Total samples = 4.96s (100.12%)
+Showing nodes accounting for 4.86s, 97.98% of 4.96s total
+Dropped 12 nodes (cum <= 0.02s)
+      flat  flat%   sum%        cum   cum%
+     3.38s 68.15% 68.15%      3.40s 68.55%  main.(*Analyzer).ringSample
+     0.90s 18.15% 86.29%      4.71s 94.96%  main.(*Analyzer).scan
+     0.17s  3.43% 89.72%      0.34s  6.85%  main.sample (inline)
+     0.15s  3.02% 92.74%      0.16s  3.23%  encoding/binary.littleEndian.Uint16 (inline)
+     0.13s  2.62% 95.36%      0.13s  2.62%  main.absInt (inline)
+     0.09s  1.81% 97.18%      0.21s  4.23%  main.(*Analyzer).spectral
+     0.03s   0.6% 97.78%      0.03s   0.6%  math.archLog
+     0.01s   0.2% 97.98%      4.96s   100%  main.(*Analyzer).Analyze
+         0     0% 97.98%      0.24s  4.84%  main.(*Analyzer).appendRegion
+         0     0% 97.98%      0.24s  4.84%  main.(*Analyzer).classify
+         0     0% 97.98%      4.96s   100%  main.main
+         0     0% 97.98%      0.03s   0.6%  math.Log (inline)
+         0     0% 97.98%      4.96s   100%  runtime.main
+         0     0% 97.98%      0.03s   0.6%  slices.Sort[go.shape.[]float64,go.shape.float64] (inline)
+         0     0% 97.98%      0.03s   0.6%  slices.pdqsortOrdered[go.shape.float64]
+         0     0% 97.98%      0.03s   0.6%  sort.Float64s

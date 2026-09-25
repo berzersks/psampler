@@ -81,6 +81,59 @@ static void pcm_add_features(zval *array, const pcm_features *f)
     }
 }
 
+static void pcm_add_ring_pulse(zval *array,const pcm_ring_pulse *p)
+{
+    array_init(array);
+    add_assoc_long(array,"start_ms",p->start_ms);
+    add_assoc_long(array,"end_ms",p->end_ms);
+    add_assoc_long(array,"duration_ms",p->duration_ms);
+    add_assoc_long(array,"tone_frames",p->tone_frames);
+}
+
+static void pcm_add_ring(zval *array,const pcm_ring_result *ring,size_t pcm_length)
+{
+    array_init(array);
+    add_assoc_long(array,"duration_ms",ring->duration_ms);
+    add_assoc_long(array,"pulse_count",ring->pulse_count);
+    add_assoc_long(array,"matched_pulse_count",ring->matched_pulse_count);
+    add_assoc_bool(array,"has_ring_pattern",ring->has_pattern);
+    add_assoc_bool(array,"has_valid_cadence",ring->has_valid_cadence);
+    add_assoc_bool(array,"ring_from_start_to_end",ring->ring_from_start_to_end);
+    if(ring->disturbance_at_ms>=0)add_assoc_long(array,"disturbance_at_ms",ring->disturbance_at_ms);
+    else add_assoc_null(array,"disturbance_at_ms");
+    add_assoc_long(array,"disturbance_duration_ms",ring->disturbance_duration_ms);
+    add_assoc_double(array,"confidence",ring->confidence);
+    const char *reason=ring->frame_count==0?(pcm_length==0?"pcm_vazio":"pcm_muito_curto"):
+        ring->pulse_count==0?"nenhum_pulso_425hz":
+        ring->disturbance_at_ms>=0?"ring_perturbado_por_outro_audio":
+        !ring->has_valid_cadence?"ring_detectado_cadencia_nao_confirmada":"ring_presente_do_inicio_ao_fim";
+    add_assoc_string(array,"reason",(char *)reason);
+    zval pulses,matched,periods,frames;
+    array_init(&pulses);array_init(&matched);array_init(&periods);array_init(&frames);
+    for(int i=0;i<ring->pulse_count;i++){
+        zval p;pcm_add_ring_pulse(&p,&ring->pulses[i]);add_next_index_zval(&pulses,&p);
+    }
+    for(int i=0;i<ring->matched_pulse_count;i++){
+        zval p;pcm_add_ring_pulse(&p,&ring->pulses[ring->matched_indexes[i]]);add_next_index_zval(&matched,&p);
+        if(i>0)add_next_index_long(&periods,ring->periods_ms[i-1]);
+    }
+    for(int i=0;i<ring->frame_count;i++){
+        const pcm_ring_frame *f=&ring->frames[i];zval frame;array_init(&frame);
+        add_assoc_long(&frame,"index",i);add_assoc_long(&frame,"start_ms",i*500);
+        add_assoc_long(&frame,"end_ms",(i+1)*500);
+        add_assoc_string(&frame,"state",f->state==1?"ring":f->state==0?"silence":"other");
+        add_assoc_double(&frame,"rms_dbfs",round(f->rms_dbfs*100.0)/100.0);
+        add_assoc_double(&frame,"ac_rms_dbfs",round(f->ac_rms_dbfs*100.0)/100.0);
+        add_assoc_double(&frame,"ring_frequency_hz",f->ring_frequency_hz);
+        add_assoc_double(&frame,"ring_level_dbfs",round(f->ring_level_dbfs*100.0)/100.0);
+        add_assoc_double(&frame,"prominence_db",round(f->prominence_db*100.0)/100.0);
+        add_assoc_double(&frame,"tone_purity_db",round(f->tone_purity_db*100.0)/100.0);
+        add_next_index_zval(&frames,&frame);
+    }
+    add_assoc_zval(array,"pulses",&pulses);add_assoc_zval(array,"matched_pulses",&matched);
+    add_assoc_zval(array,"periods_ms",&periods);add_assoc_zval(array,"frames",&frames);
+}
+
 PHP_METHOD(PCMAnalyzer, analyze)
 {
     zend_string *pcm;
@@ -143,6 +196,9 @@ PHP_METHOD(PCMAnalyzer, analyze)
         add_next_index_zval(&segments, &segment);
     }
     add_assoc_zval(return_value, "segments", &segments);
+    zval ring;
+    pcm_add_ring(&ring,&result.ring,length);
+    add_assoc_zval(return_value,"ring",&ring);
 }
 
 typedef struct _psampler_context {
@@ -1095,7 +1151,7 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_header(2, "psampler support", "enabled");
     php_info_print_table_row(2, "Version", PHP_PSAMPLER_VERSION);
     php_info_print_table_row(2, "Description",
-        "Reamostragem, manipulacao PCM e extracao de features acusticas PCM16");
+        "Reamostragem, manipulacao PCM e evidencias acusticas/ring PCM16");
     php_info_print_table_row(2, "Author", "psampler");
     php_info_print_table_end();
 

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,6 +27,40 @@ type Frame struct {
 	RMS, CV, Diff float64
 	Cross         int
 	Active        bool
+}
+type RingPulse struct {
+	Start      int `json:"start_ms"`
+	End        int `json:"end_ms"`
+	Duration   int `json:"duration_ms"`
+	ToneFrames int `json:"tone_frames"`
+}
+type RingFrame struct {
+	Index      int     `json:"index"`
+	Start      int     `json:"start_ms"`
+	End        int     `json:"end_ms"`
+	State      string  `json:"state"`
+	RMS        float64 `json:"rms_dbfs"`
+	ACRMS      float64 `json:"ac_rms_dbfs"`
+	Frequency  float64 `json:"ring_frequency_hz"`
+	Level      float64 `json:"ring_level_dbfs"`
+	Prominence float64 `json:"prominence_db"`
+	Purity     float64 `json:"tone_purity_db"`
+}
+type RingResult struct {
+	Duration            int         `json:"duration_ms"`
+	PulseCount          int         `json:"pulse_count"`
+	MatchedCount        int         `json:"matched_pulse_count"`
+	HasPattern          bool        `json:"has_ring_pattern"`
+	HasCadence          bool        `json:"has_valid_cadence"`
+	FromStartToEnd      bool        `json:"ring_from_start_to_end"`
+	DisturbanceAt       *int        `json:"disturbance_at_ms"`
+	DisturbanceDuration int         `json:"disturbance_duration_ms"`
+	Confidence          float64     `json:"confidence"`
+	Reason              string      `json:"reason"`
+	Pulses              []RingPulse `json:"pulses"`
+	Matched             []RingPulse `json:"matched_pulses"`
+	Periods             []int       `json:"periods_ms"`
+	Frames              []RingFrame `json:"frames"`
 }
 type Features struct {
 	Signal       string  `json:"signal"`
@@ -51,30 +86,42 @@ type Segment struct {
 	Features Features `json:"features"`
 }
 type Result struct {
-	Duration          int       `json:"duration_ms"`
-	Active            int       `json:"active_audio_ms"`
-	Silence           int       `json:"silence_ms"`
-	Voice             int       `json:"voice_ms"`
-	Longest           int       `json:"longest_segment_ms"`
-	SegmentCount      int       `json:"segment_count"`
-	FirstVoiceSegment int       `json:"first_voice_segment_ms"`
-	PauseCount        int       `json:"pause_count"`
-	MeanPause         float64   `json:"mean_pause_ms"`
-	FirstVoice        int       `json:"started_at_ms"`
-	LastVoice         int       `json:"last_voice_ms"`
-	Tone              int       `json:"tone_ms"`
-	Noise             int       `json:"noise_ms"`
-	Music             int       `json:"music_ms"`
-	VoiceRatio        float64   `json:"voice_ratio"`
-	SilenceRatio      float64   `json:"silence_ratio"`
-	Signal            string    `json:"signal"`
-	SignalFeatures    Features  `json:"signal_features"`
-	Segments          []Segment `json:"segments"`
+	Duration          int        `json:"duration_ms"`
+	Active            int        `json:"active_audio_ms"`
+	Silence           int        `json:"silence_ms"`
+	Voice             int        `json:"voice_ms"`
+	Longest           int        `json:"longest_segment_ms"`
+	SegmentCount      int        `json:"segment_count"`
+	FirstVoiceSegment int        `json:"first_voice_segment_ms"`
+	PauseCount        int        `json:"pause_count"`
+	MeanPause         float64    `json:"mean_pause_ms"`
+	FirstVoice        int        `json:"started_at_ms"`
+	LastVoice         int        `json:"last_voice_ms"`
+	Tone              int        `json:"tone_ms"`
+	Noise             int        `json:"noise_ms"`
+	Music             int        `json:"music_ms"`
+	VoiceRatio        float64    `json:"voice_ratio"`
+	SilenceRatio      float64    `json:"silence_ratio"`
+	Signal            string     `json:"signal"`
+	SignalFeatures    Features   `json:"signal_features"`
+	Segments          []Segment  `json:"segments"`
+	Ring              RingResult `json:"ring"`
 }
 type Analyzer struct {
-	Coeff    [8]float64
-	Frames   [maxFrames]Frame
-	Segments [maxSegments]Segment
+	Coeff                          [8]float64
+	Frames                         [maxFrames]Frame
+	Segments                       [maxSegments]Segment
+	RingCoeff                      [24]float64
+	RingHann                       [4000]float64
+	RingX, RingY                   [24]float64
+	RingSquares                    float64
+	RingSum                        float64
+	RingIndex                      int
+	RingFrames                     [30]RingFrame
+	RingPulses                     [30]RingPulse
+	RingMatched                    [30]RingPulse
+	RingPeriods                    [30]int
+	RingFrameCount, RingPulseCount int
 }
 
 func NewAnalyzer() *Analyzer {
@@ -82,13 +129,227 @@ func NewAnalyzer() *Analyzer {
 	for i, f := range frequencies {
 		a.Coeff[i] = 2 * math.Cos(2*math.Pi*f/8000)
 	}
+	background := [10]float64{250, 300, 350, 500, 600, 700, 850, 1000, 1200, 1500}
+	for i := 0; i < 14; i++ {
+		a.RingCoeff[i] = 2 * math.Cos(2*math.Pi*(395+float64(i)*5)/8000)
+	}
+	for i, f := range background {
+		a.RingCoeff[i+14] = 2 * math.Cos(2*math.Pi*f/8000)
+	}
+	for i := range a.RingHann {
+		a.RingHann[i] = 0.5 * (1 - math.Cos(2*math.Pi*float64(i)/3999))
+	}
 	return a
+}
+func (a *Analyzer) ringLevel(i int) float64 {
+	x, y, c := a.RingX[i], a.RingY[i], a.RingCoeff[i]
+	power := x*x + y*y - c*x*y
+	if power <= 0 {
+		return -120
+	}
+	amplitude := 4 * math.Sqrt(power) / 4000
+	if amplitude <= 0 {
+		return -120
+	}
+	return math.Max(-120, math.Min(0, 20*math.Log10(amplitude/32768)))
+}
+func (a *Analyzer) finishRingFrame() {
+	i := a.RingFrameCount
+	f := &a.RingFrames[i]
+	*f = RingFrame{Index: i, Start: i * 500, End: (i + 1) * 500, State: "other", RMS: -120, Frequency: 425}
+	rms := math.Sqrt(a.RingSquares / 4000)
+	if rms > 0 {
+		f.RMS = math.Max(-120, 20*math.Log10(rms/32768))
+	}
+	dc := a.RingSum / 4000
+	acRMS := math.Sqrt(math.Max(0, a.RingSquares/4000-dc*dc))
+	acDBFS := -120.0
+	if acRMS > 0 {
+		acDBFS = math.Max(-120, 20*math.Log10(acRMS/32768))
+	}
+	f.ACRMS = acDBFS
+	best := -120.0
+	for k := 0; k < 14; k++ {
+		level := a.ringLevel(k)
+		if level > best {
+			best = level
+			f.Frequency = 395 + float64(k)*5
+		}
+	}
+	var bg [10]float64
+	for k := range bg {
+		bg[k] = a.ringLevel(k + 14)
+	}
+	sort.Float64s(bg[:])
+	f.Level = best
+	f.Prominence = best - (bg[4]+bg[5])/2
+	f.Purity = best - acDBFS
+	if best >= -48 && f.Prominence >= 10 && f.Purity >= 1.5 {
+		f.State = "ring"
+	} else if acDBFS <= -50 {
+		f.State = "silence"
+	}
+	if f.State == "ring" {
+		if a.RingPulseCount > 0 && a.RingPulses[a.RingPulseCount-1].End == f.Start {
+			p := &a.RingPulses[a.RingPulseCount-1]
+			p.End = f.End
+			p.Duration = p.End - p.Start
+			p.ToneFrames++
+		} else {
+			a.RingPulses[a.RingPulseCount] = RingPulse{f.Start, f.End, 500, 1}
+			a.RingPulseCount++
+		}
+	}
+	f.RMS = round(f.RMS, 2)
+	f.ACRMS = round(f.ACRMS, 2)
+	f.Level = round(f.Level, 2)
+	f.Prominence = round(f.Prominence, 2)
+	f.Purity = round(f.Purity, 2)
+	a.RingFrameCount++
+	a.RingIndex = 0
+	a.RingSquares = 0
+	a.RingSum = 0
+	a.RingX = [24]float64{}
+	a.RingY = [24]float64{}
+}
+func (a *Analyzer) ringSample(s int) {
+	if a.RingFrameCount >= 30 {
+		return
+	}
+	if s == 0 && a.RingSquares == 0 {
+		a.RingIndex++
+		if a.RingIndex == 4000 {
+			a.finishRingFrame()
+		}
+		return
+	}
+	input := float64(s) * a.RingHann[a.RingIndex]
+	a.RingSquares += float64(s * s)
+	a.RingSum += float64(s)
+	for i, c := range a.RingCoeff {
+		next := input + c*a.RingX[i] - a.RingY[i]
+		a.RingY[i] = a.RingX[i]
+		a.RingX[i] = next
+	}
+	a.RingIndex++
+	if a.RingIndex == 4000 {
+		a.finishRingFrame()
+	}
+}
+func (a *Analyzer) finishRing() RingResult {
+	n := 0
+	for i := 0; i < a.RingPulseCount; i++ {
+		if a.RingPulses[i].ToneFrames >= 2 {
+			a.RingPulses[n] = a.RingPulses[i]
+			n++
+		}
+	}
+	a.RingPulseCount = n
+	r := RingResult{Duration: a.RingFrameCount * 500, PulseCount: n, HasPattern: n > 0, Reason: "nenhum_pulso_425hz"}
+	var lengths, previous, indexes [30]int
+	bestEnd, bestLength := -1, 0
+	for i := 0; i < n; i++ {
+		lengths[i] = 1
+		previous[i] = -1
+		for j := 0; j < i; j++ {
+			period := a.RingPulses[i].Start - a.RingPulses[j].Start
+			if absInt(period-5000) <= 600 && lengths[j]+1 > lengths[i] {
+				lengths[i] = lengths[j] + 1
+				previous[i] = j
+			}
+		}
+		if lengths[i] > bestLength {
+			bestLength = lengths[i]
+			bestEnd = i
+		}
+	}
+	count := 0
+	for bestEnd >= 0 {
+		indexes[count] = bestEnd
+		count++
+		bestEnd = previous[bestEnd]
+	}
+	for i := 0; i < count; i++ {
+		p := a.RingPulses[indexes[count-i-1]]
+		a.RingMatched[i] = p
+		if i > 0 {
+			a.RingPeriods[i-1] = p.Start - a.RingMatched[i-1].Start
+		}
+	}
+	r.MatchedCount = count
+	r.HasCadence = count >= 2
+	start := -1
+	for i := 0; i < a.RingFrameCount; i++ {
+		middle := i*500 + 250
+		protected := false
+		for j := 0; j < count; j++ {
+			p := a.RingMatched[j]
+			if middle >= p.Start-400 && middle <= p.End+400 {
+				protected = true
+				break
+			}
+		}
+		if a.RingFrames[i].State == "other" && !protected {
+			if start < 0 {
+				start = i * 500
+			}
+			continue
+		}
+		if start >= 0 {
+			duration := i*500 - start
+			if duration >= 300 {
+				v := start
+				r.DisturbanceAt = &v
+				r.DisturbanceDuration = duration
+				break
+			}
+			start = -1
+		}
+	}
+	if r.DisturbanceAt == nil && start >= 0 {
+		duration := r.Duration - start
+		if duration >= 300 {
+			v := start
+			r.DisturbanceAt = &v
+			r.DisturbanceDuration = duration
+		}
+	}
+	r.FromStartToEnd = r.HasPattern && r.DisturbanceAt == nil
+	cycle := 0.0
+	if r.HasCadence {
+		cycle = math.Min(1, 0.70+math.Max(0, float64(count-2))*0.15)
+	} else if r.HasPattern {
+		cycle = 0.45
+	}
+	if r.HasPattern {
+		clean := 0.0
+		if r.DisturbanceAt == nil {
+			clean = 0.30
+		}
+		r.Confidence = round(cycle*0.70+clean, 4)
+	}
+	if n > 0 {
+		if r.DisturbanceAt != nil {
+			r.Reason = "ring_perturbado_por_outro_audio"
+		} else if !r.HasCadence {
+			r.Reason = "ring_detectado_cadencia_nao_confirmada"
+		} else {
+			r.Reason = "ring_presente_do_inicio_ao_fim"
+		}
+	}
+	r.Pulses = a.RingPulses[:n]
+	r.Matched = a.RingMatched[:count]
+	r.Periods = a.RingPeriods[:max(0, count-1)]
+	r.Frames = a.RingFrames[:a.RingFrameCount]
+	return r
 }
 func sample(b []byte, i int) int { return int(int16(binary.LittleEndian.Uint16(b[i*2:]))) }
 func round(v float64, n int) float64 {
 	scale := 1000.0
 	if n == 4 {
 		scale = 10000
+	} else if n == 2 {
+		scale = 100
 	}
 	return math.Round(v*scale) / scale
 }
@@ -128,6 +389,7 @@ func (a *Analyzer) scan(b []byte) Frame {
 	sum, squares, absolute, difference := 0.0, 0.0, 0.0, 0.0
 	for i := 0; i < 160; i++ {
 		s := sample(b, i)
+		a.ringSample(s)
 		sum += float64(s)
 		squares += float64(s * s)
 		absolute += float64(absInt(s))
@@ -357,6 +619,13 @@ func (a *Analyzer) Analyze(pcm []byte) (Result, error) {
 		return r, fmt.Errorf("invalid PCM length %d", len(pcm))
 	}
 	frames := len(pcm) / 320
+	a.RingX = [24]float64{}
+	a.RingY = [24]float64{}
+	a.RingSquares = 0
+	a.RingSum = 0
+	a.RingIndex = 0
+	a.RingFrameCount = 0
+	a.RingPulseCount = 0
 	start, last, count := -1, -1, 0
 	for i := 0; i < frames; i++ {
 		a.Frames[i] = a.scan(pcm[i*320:])
@@ -406,13 +675,22 @@ func (a *Analyzer) Analyze(pcm []byte) (Result, error) {
 		r.Signal = "other_audio"
 	}
 	r.Segments = a.Segments[:count]
+	r.Ring = a.finishRing()
+	if len(pcm) < 8000 {
+		r.Ring.Duration = r.Duration
+		if len(pcm) == 0 {
+			r.Ring.Reason = "pcm_vazio"
+		} else {
+			r.Ring.Reason = "pcm_muito_curto"
+		}
+	}
 	return r, nil
 }
 
 var sink uint64
 
 func digest(r Result) uint64 {
-	v := uint64(r.Duration)*1315423911 + uint64(r.Voice)*2654435761 + uint64(r.Longest)*97 + uint64(r.Active)*31 + uint64(len(r.Segments))
+	v := uint64(r.Duration)*1315423911 + uint64(r.Voice)*2654435761 + uint64(r.Longest)*97 + uint64(r.Active)*31 + uint64(len(r.Segments)) + uint64(r.Ring.PulseCount)*7919 + uint64(r.Ring.MatchedCount)*1543
 	for _, s := range r.Segments {
 		v = v*1099511628211 + uint64(s.Start*7+s.End*11+s.Voice*13) + uint64(math.Float64bits(s.Features.Dominance))
 	}
@@ -462,7 +740,18 @@ func main() {
 	dir := flag.String("dir", "bench/fixtures", "fixture directory")
 	runs := flag.Int("runs", 1000, "jobs per duration")
 	workers := flag.Int("workers", 1, "concurrent analyzers")
+	cpuProfile := flag.String("cpuprofile", "", "write Go CPU profile (outside ordinary benchmarks)")
 	flag.Parse()
+	if *cpuProfile != "" {
+		file, err := os.Create(*cpuProfile)
+		if err != nil {
+			panic(err)
+		}
+		if err := pprof.StartCPUProfile(file); err != nil {
+			panic(err)
+		}
+		defer func() { pprof.StopCPUProfile(); file.Close() }()
+	}
 	files, err := filepath.Glob(filepath.Join(*dir, "*.pcm"))
 	if err != nil || len(files) == 0 {
 		panic("no fixtures")
@@ -502,8 +791,13 @@ func main() {
 		if len(inputs) == 0 {
 			continue
 		}
+		analyzers := make([]*Analyzer, *workers)
+		analyzers[0] = a
+		for worker := 1; worker < *workers; worker++ {
+			analyzers[worker] = NewAnalyzer()
+		}
 		for i := 0; i < 25; i++ {
-			r, _ := a.Analyze(inputs[i%len(inputs)])
+			r, _ := analyzers[i%*workers].Analyze(inputs[i%len(inputs)])
 			sink += digest(r)
 		}
 		times := make([]float64, *runs)
@@ -530,7 +824,7 @@ func main() {
 				group.Add(1)
 				go func(worker int) {
 					defer group.Done()
-					local := NewAnalyzer()
+					local := analyzers[worker]
 					for i := worker; i < *runs; i += *workers {
 						start := time.Now()
 						r, e := local.Analyze(inputs[i%len(inputs)])

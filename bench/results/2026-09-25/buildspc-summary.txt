@@ -1,0 +1,9 @@
+Command: ./buildspc.sh
+Result: PASS; 105.659 s (final run)
+Output binary: /home/lotus/projetos/psampler/php
+./php --ri psampler: support enabled, Version 0.6.0
+Functional: PCMAnalyzer->analyze() returned ring evidence
+PHPT: 5/5 PASS (PCMAnalyzer, ring, legacy API, ByteBuffer, ByteBuffer stress)
+Acoustic snapshot: 95/95 SHA-256 equal after removing only the added ring key
+Ring ground truth: 56/56 PASS
+C/Go complete canonical digest: 151/151 equal

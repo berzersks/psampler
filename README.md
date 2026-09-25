@@ -2,7 +2,7 @@
 
 Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmpeg.
 
-Versão atual: **0.5.0**.
+Versão atual: **0.6.0**.
 
 ## PCMAnalyzer
 
@@ -21,14 +21,35 @@ O limite é 15 segundos (240.000 bytes) e 64 regiões ativas. Tamanho ímpar,
 O resultado contém `duration_ms`, `active_audio_ms`, `silence_ms`, `voice_ms`,
 `longest_segment_ms`, `segment_count`, `started_at_ms`, `last_voice_ms`,
 `tone_ms`, `noise_ms`, `music_ms`, `voice_ratio`, `silence_ratio`, `signal`,
-`signal_features` e `segments`. Cada segmento tem início, fim, duração,
+`signal_features`, `segments` e `ring`. Cada segmento tem início, fim, duração,
 `signal`, métricas acústicas e, quando é `voice_like`, duração de quadros
 ativos e maior trecho contínuo. `signal_features` inclui RMS, cruzamentos,
 diferença normalizada e estatísticas espectrais. O módulo descreve áudio;
 qualquer limiar operacional ou decisão de telefonia pertence à aplicação.
 
-O processamento lê diretamente os bytes da `zend_string`. Usa um quadro
-principal por amostra, uma passagem curta de sondas Goertzel por região e
+`ring` contém `duration_ms` da análise em janelas completas de 500 ms,
+`pulse_count`, `matched_pulse_count`, `has_ring_pattern`, `has_valid_cadence`,
+`ring_from_start_to_end`, `disturbance_at_ms` (`null` quando ausente),
+`disturbance_duration_ms`, `confidence`, `reason`, `pulses`, `matched_pulses`,
+`periods_ms` e `frames`. Um pulso exige dois quadros tonais de 500 ms; a
+cadência usa inícios separados por 5000 ± 600 ms. Cada quadro usa Hann e
+compara candidatos de 395 a 460 Hz a dez frequências de fundo.
+As janelas também exigem pelo menos 1,5 dB de pureza tonal em relação ao RMS
+AC, para rejeitar voz, música de dois tons e picos aleatórios de ruído que a
+implementação anterior confundia com ring. A classificação de silêncio usa
+RMS AC para não confundir deslocamento DC com perturbação.
+Estas são
+evidências acústicas e temporais; `ring_from_start_to_end` segue a definição
+do algoritmo de referência: existe pelo menos um pulso e não foi encontrada
+perturbação sustentada fora das bordas protegidas dos pulsos. O campo não
+afirma que o tom ocupa literalmente toda a gravação.
+
+O processamento lê diretamente os bytes da `zend_string`. O scan de quadros
+de 20 ms alimenta RMS, cruzamentos, diferença e os acumuladores de ring na
+mesma decodificação PCM. A janela de ring é de 500 ms porque a análise de
+20 ms sem Hann não produz a mesma evidência de frequência. A análise acústica
+mantém sondas espectrais Goertzel nas regiões selecionadas, com nova leitura
+dessas amostras para preservar seus resultados anteriores. O algoritmo usa
 memória limitada por 750 quadros e 64 segmentos; tempo O(n), memória O(1)
 para a janela máxima fixa. Cada objeto guarda seus próprios coeficientes e
 scratch buffers. `analyze()` reinicia o estado por chamada e não usa globals
@@ -40,11 +61,14 @@ Testes e comparação reproduzível:
 
 ```sh
 php bench/generate-fixtures.php
-go build -o /tmp/pcmgo bench/pcmgo/main.go
-./php bench/shadow-compare.php /tmp/pcmgo
-./php bench/shadow-compare.php /tmp/pcmgo --bench # inclui medição rápida offline
-./php run-tests.php -q tests/pcm_analyzer.phpt tests/byte_buffer.phpt tests/byte_buffer_stress.phpt
+python3 bench/generate-ring-fixtures.py
+GO111MODULE=off go build -o /tmp/pcmgo ./bench/pcmgo
+./php bench/ring-ground-truth.php
+./php bench/ring-compare.php /tmp/pcmgo
+./php bench/unified-compare.php /tmp/pcmgo
+./php run-tests.php -q tests/pcm_analyzer.phpt tests/ring_evidence.phpt tests/legacy_api.phpt tests/byte_buffer.phpt tests/byte_buffer_stress.phpt
 ./php tests/pcm_analyzer_stress.php
+bench/run-unified-bench.sh
 ```
 
 Também expõe `ByteBuffer`, uma fila binária mutável implementada como ring

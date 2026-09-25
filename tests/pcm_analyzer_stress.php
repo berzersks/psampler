@@ -25,6 +25,8 @@ for ($i = 0; $i < 100000; $i++) {
     $a = $analyzers[$i % 2];
     $r = $a->analyze($bytes);
     if ($r['duration_ms'] !== intdiv(strlen($bytes), 16)) throw new RuntimeException('duration mismatch');
+    if ($r['ring']['pulse_count'] > count($r['ring']['pulses']) || $r['ring']['matched_pulse_count'] > $r['ring']['pulse_count'])
+        throw new RuntimeException('ring count mismatch');
     if (($i % 250) === 0) {
         $r = $a->analyze($long);
         if ($r['duration_ms'] !== 15000) throw new RuntimeException('long duration mismatch');
@@ -42,6 +44,9 @@ for ($i = 0; $i < 100000; $i++) {
 foreach (["\0\0", "\xff\x7f", "\0\x80", "\xff\xff"] as $extreme) {
     $analyzers[0]->analyze(str_repeat($extreme, 8000));
 }
+$analyzers[0]->analyze($long);
+if ($analyzers[0]->analyze('')['ring']['pulse_count'] !== 0) throw new RuntimeException('ring state leaked');
+$analyzers[0]->analyze(str_repeat("\0", 240000));
 for ($i = 0; $i < 1024; $i++) {
     $size = ($i * 7919) % 240003;
     $bytes = $size === 0 ? '' : random_bytes($size);

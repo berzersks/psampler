@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/binary"
+	"math"
 	"os"
 	"testing"
 )
@@ -15,6 +17,25 @@ func TestInputBounds(t *testing.T) {
 	}
 	if _, err := analyzer.Analyze(make([]byte, 240002)); err == nil {
 		t.Fatal("oversized PCM accepted")
+	}
+}
+
+func TestRingEvidenceResets(t *testing.T) {
+	analyzer := NewAnalyzer()
+	pcm := make([]byte, 160000)
+	for _, start := range []int{0, 40000} {
+		for i := 0; i < 8000; i++ {
+			sample := int16(math.Round(12000 * math.Sin(2*math.Pi*425*float64(i)/8000)))
+			binary.LittleEndian.PutUint16(pcm[(start+i)*2:], uint16(sample))
+		}
+	}
+	ring, err := analyzer.Analyze(pcm)
+	if err != nil || ring.Ring.PulseCount != 2 || ring.Ring.MatchedCount != 2 || ring.Ring.DisturbanceAt != nil {
+		t.Fatalf("two pulses: %+v %v", ring.Ring, err)
+	}
+	empty, err := analyzer.Analyze(nil)
+	if err != nil || empty.Ring.PulseCount != 0 || empty.Ring.Reason != "pcm_vazio" {
+		t.Fatalf("state leaked: %+v %v", empty.Ring, err)
 	}
 }
 

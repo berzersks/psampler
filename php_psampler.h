@@ -23,7 +23,7 @@
  *                          crescimento geometrico e remocao sem copiar o
  *                          restante dos dados.
  *
- *   4) class PCMAnalyzer -> extracao limitada de features acusticas sobre
+ *   4) class PCMAnalyzer -> extracao de features acusticas e ring sobre
  *                           PCM16LE mono 8 kHz em quadros de 20 ms.
  *
  *   5) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
@@ -153,8 +153,9 @@ extern zend_module_entry psampler_module_entry;
  *   0.3.0 - Adicionada a funcao global monoToStereo().
  *   0.4.0 - Adicionada a classe ByteBuffer com armazenamento circular.
  *   0.5.0 - Adicionada a classe PCMAnalyzer para features acústicas PCM16.
+ *   0.6.0 - Adicionada evidencia nativa de ring ao scan de PCMAnalyzer.
  */
-#define PHP_PSAMPLER_VERSION "0.5.0"
+#define PHP_PSAMPLER_VERSION "0.6.0"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)
