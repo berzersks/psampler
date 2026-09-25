@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"math"
+	"math/rand"
 	"os"
 	"testing"
 )
@@ -33,9 +34,39 @@ func TestRingEvidenceResets(t *testing.T) {
 	if err != nil || ring.Ring.PulseCount != 2 || ring.Ring.MatchedCount != 2 || ring.Ring.DisturbanceAt != nil {
 		t.Fatalf("two pulses: %+v %v", ring.Ring, err)
 	}
+	if analyzer.RingPCM != nil {
+		t.Fatal("analyzer retained PCM after analysis")
+	}
 	empty, err := analyzer.Analyze(nil)
 	if err != nil || empty.Ring.PulseCount != 0 || empty.Ring.Reason != "pcm_vazio" {
 		t.Fatalf("state leaked: %+v %v", empty.Ring, err)
+	}
+}
+
+func TestRandomPCMWindowBounds(t *testing.T) {
+	rng := rand.New(rand.NewSource(4169))
+	analyzers := [2]*Analyzer{NewAnalyzer(), NewAnalyzer()}
+	for i := 0; i < 1024; i++ {
+		n := rng.Intn(8001) * 2
+		if i%128 == 0 {
+			n = 240000
+		}
+		pcm := make([]byte, n)
+		if _, err := rng.Read(pcm); err != nil {
+			t.Fatal(err)
+		}
+		a := analyzers[i%len(analyzers)]
+		result, _ := a.Analyze(pcm) // Random noise can exceed the segment limit.
+		if a.RingPCM != nil || result.Ring.PulseCount > 30 {
+			t.Fatalf("retained PCM or invalid pulse count at case %d", i)
+		}
+		if i%256 == 0 {
+			temporary := NewAnalyzer()
+			temporary.Analyze(pcm)
+			if temporary.RingPCM != nil {
+				t.Fatal("temporary analyzer retained PCM")
+			}
+		}
 	}
 }
 

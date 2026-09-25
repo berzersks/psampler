@@ -111,9 +111,9 @@ type Analyzer struct {
 	Coeff                          [8]float64
 	Frames                         [maxFrames]Frame
 	Segments                       [maxSegments]Segment
-	RingCoeff                      [24]float64
+	RingCoeff                      [24]ringNumber
 	RingHann                       [4000]float64
-	RingX, RingY                   [24]float64
+	RingX, RingY                   [24]ringNumber
 	RingSquares                    float64
 	RingSum                        float64
 	RingIndex                      int
@@ -122,6 +122,7 @@ type Analyzer struct {
 	RingMatched                    [30]RingPulse
 	RingPeriods                    [30]int
 	RingFrameCount, RingPulseCount int
+	RingPCM                        []byte // current PCM while the bank is evaluated at window end
 }
 
 func NewAnalyzer() *Analyzer {
@@ -131,10 +132,10 @@ func NewAnalyzer() *Analyzer {
 	}
 	background := [10]float64{250, 300, 350, 500, 600, 700, 850, 1000, 1200, 1500}
 	for i := 0; i < 14; i++ {
-		a.RingCoeff[i] = 2 * math.Cos(2*math.Pi*(395+float64(i)*5)/8000)
+		a.RingCoeff[i] = ringNumber(2 * math.Cos(2*math.Pi*(395+float64(i)*5)/8000))
 	}
 	for i, f := range background {
-		a.RingCoeff[i+14] = 2 * math.Cos(2*math.Pi*f/8000)
+		a.RingCoeff[i+14] = ringNumber(2 * math.Cos(2*math.Pi*f/8000))
 	}
 	for i := range a.RingHann {
 		a.RingHann[i] = 0.5 * (1 - math.Cos(2*math.Pi*float64(i)/3999))
@@ -142,7 +143,7 @@ func NewAnalyzer() *Analyzer {
 	return a
 }
 func (a *Analyzer) ringLevel(i int) float64 {
-	x, y, c := a.RingX[i], a.RingY[i], a.RingCoeff[i]
+	x, y, c := float64(a.RingX[i]), float64(a.RingY[i]), float64(a.RingCoeff[i])
 	power := x*x + y*y - c*x*y
 	if power <= 0 {
 		return -120
@@ -152,6 +153,26 @@ func (a *Analyzer) ringLevel(i int) float64 {
 		return -120
 	}
 	return math.Max(-120, math.Min(0, 20*math.Log10(amplitude/32768)))
+}
+func (a *Analyzer) ringPass(frame, first, count int) {
+	if a.RingSquares == 0 {
+		return
+	} // exact digital-zero fast path
+	b := a.RingPCM[frame*4000*2:]
+	started := false
+	for j := 0; j < 4000; j++ {
+		s := sample(b, j)
+		if s == 0 && !started {
+			continue
+		}
+		started = true
+		input := ringNumber(float64(s) * a.RingHann[j])
+		for i := first; i < first+count; i++ {
+			next := input + a.RingCoeff[i]*a.RingX[i] - a.RingY[i]
+			a.RingY[i] = a.RingX[i]
+			a.RingX[i] = next
+		}
+	}
 }
 func (a *Analyzer) finishRingFrame() {
 	i := a.RingFrameCount
@@ -168,6 +189,18 @@ func (a *Analyzer) finishRingFrame() {
 		acDBFS = math.Max(-120, 20*math.Log10(acRMS/32768))
 	}
 	f.ACRMS = acDBFS
+	if ringStage {
+		bound := 4 * math.Sqrt(a.RingSquares*1499.626) / 4000
+		if bound >= 32768*0.003981071705534973 {
+			a.ringPass(i, 0, 14)
+		}
+	}
+	if ringFull {
+		a.ringPass(i, 0, 14)
+	}
+	if ringAll {
+		a.ringPass(i, 0, 24)
+	}
 	best := -120.0
 	for k := 0; k < 14; k++ {
 		level := a.ringLevel(k)
@@ -175,6 +208,9 @@ func (a *Analyzer) finishRingFrame() {
 			best = level
 			f.Frequency = 395 + float64(k)*5
 		}
+	}
+	if ringFull || (ringStage && best >= -48 && best-acDBFS >= 1.5) {
+		a.ringPass(i, 14, 10)
 	}
 	var bg [10]float64
 	for k := range bg {
@@ -209,8 +245,8 @@ func (a *Analyzer) finishRingFrame() {
 	a.RingIndex = 0
 	a.RingSquares = 0
 	a.RingSum = 0
-	a.RingX = [24]float64{}
-	a.RingY = [24]float64{}
+	a.RingX = [24]ringNumber{}
+	a.RingY = [24]ringNumber{}
 }
 func (a *Analyzer) ringSample(s int) {
 	if a.RingFrameCount >= 30 {
@@ -223,13 +259,15 @@ func (a *Analyzer) ringSample(s int) {
 		}
 		return
 	}
-	input := float64(s) * a.RingHann[a.RingIndex]
 	a.RingSquares += float64(s * s)
 	a.RingSum += float64(s)
-	for i, c := range a.RingCoeff {
-		next := input + c*a.RingX[i] - a.RingY[i]
-		a.RingY[i] = a.RingX[i]
-		a.RingX[i] = next
+	if !ringStage && !ringFull && !ringAll {
+		input := ringNumber(float64(s) * a.RingHann[a.RingIndex])
+		for i, c := range a.RingCoeff {
+			next := input + c*a.RingX[i] - a.RingY[i]
+			a.RingY[i] = a.RingX[i]
+			a.RingX[i] = next
+		}
 	}
 	a.RingIndex++
 	if a.RingIndex == 4000 {
@@ -619,8 +657,12 @@ func (a *Analyzer) Analyze(pcm []byte) (Result, error) {
 		return r, fmt.Errorf("invalid PCM length %d", len(pcm))
 	}
 	frames := len(pcm) / 320
-	a.RingX = [24]float64{}
-	a.RingY = [24]float64{}
+	if ringStage || ringFull || ringAll {
+		a.RingPCM = pcm
+		defer func() { a.RingPCM = nil }()
+	}
+	a.RingX = [24]ringNumber{}
+	a.RingY = [24]ringNumber{}
 	a.RingSquares = 0
 	a.RingSum = 0
 	a.RingIndex = 0
@@ -736,7 +778,7 @@ func cpuMs() float64 {
 	return float64(u.Utime.Sec+u.Stime.Sec)*1000 + float64(u.Utime.Usec+u.Stime.Usec)/1000
 }
 func main() {
-	mode := flag.String("mode", "results", "results or bench")
+	mode := flag.String("mode", "results", "results, bench or category")
 	dir := flag.String("dir", "bench/fixtures", "fixture directory")
 	runs := flag.Int("runs", 1000, "jobs per duration")
 	workers := flag.Int("workers", 1, "concurrent analyzers")
@@ -773,6 +815,42 @@ func main() {
 			}
 			out := map[string]any{"fixture": filepath.Base(name), "result": r, "digest": digest(r)}
 			v, _ := json.Marshal(out)
+			fmt.Println(string(v))
+		}
+		return
+	}
+	if *mode == "category" {
+		for _, name := range files {
+			b, e := os.ReadFile(name)
+			if e != nil {
+				panic(e)
+			}
+			for i := 0; i < 25; i++ {
+				r, e := a.Analyze(b)
+				if e != nil {
+					panic(e)
+				}
+				sink += digest(r)
+			}
+			times := make([]float64, *runs)
+			before := cpuMs()
+			startWall := time.Now()
+			for i := 0; i < *runs; i++ {
+				start := time.Now()
+				r, e := a.Analyze(b)
+				if e != nil {
+					panic(e)
+				}
+				times[i] = float64(time.Since(start).Nanoseconds()) / 1e6
+				sink += digest(r)
+			}
+			elapsed := time.Since(startWall).Seconds()
+			row := map[string]any{"category": strings.TrimSuffix(filepath.Base(name), ".pcm"),
+				"jobs": *runs, "cpu_ms_per_job": (cpuMs() - before) / float64(*runs),
+				"p50_ms": percentile(times, .50), "p95_ms": percentile(times, .95),
+				"p99_ms": percentile(times, .99), "jobs_s": float64(*runs) / elapsed,
+				"rss_peak_kb": peakRSSKB(), "sink": sink}
+			v, _ := json.Marshal(row)
 			fmt.Println(string(v))
 		}
 		return

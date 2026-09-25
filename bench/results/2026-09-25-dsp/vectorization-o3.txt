@@ -1,0 +1,28 @@
+pcm_analyzer.c:140:18: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:129:18: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:99:60: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:99:60: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:99:60: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:99:60: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:12:102: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:116:18: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:196:12: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:196:12: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:12:102: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:12:102: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:11:87: optimized: loop vectorized using 16 byte vectors
+pcm_analyzer.c:270:30: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:270:30: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:274:21: optimized: basic block part vectorized using 8 byte vectors
+pcm_analyzer.c:35:49: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:35:49: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:35:49: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:297:5: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:297:5: optimized: basic block part vectorized using 16 byte vectors
+pcm_analyzer.c:297:5: optimized: basic block part vectorized using 16 byte vectors

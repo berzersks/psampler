@@ -54,6 +54,7 @@ foreach ($expected as $name => [$pulses, $matched, $disturbance]) {
 $files = glob(__DIR__ . '/ring-fixtures/*.pcm');
 if (count($files) !== count($expected)) throw new RuntimeException('Ground truth does not cover every fixture');
 $report = ['fixtures' => count($expected), 'failures' => count($failures), 'first_failures' => array_slice($failures, 0, 20)];
-file_put_contents(__DIR__ . '/results/2026-09-25/ring-ground-truth.json', json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+$output = getenv('PSAMPLER_GROUND_TRUTH_OUTPUT') ?: __DIR__ . '/results/2026-09-25/ring-ground-truth.json';
+file_put_contents($output, json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 echo json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR), PHP_EOL;
 exit($failures ? 1 : 0);

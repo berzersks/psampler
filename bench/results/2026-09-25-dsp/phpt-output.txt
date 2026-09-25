@@ -1,0 +1,28 @@
+
+=====================================================================
+PHP         : /home/lotus/projetos/psampler/php 
+PHP_SAPI    : cli
+PHP_VERSION : 8.5.10
+ZEND_VERSION: 4.5.10
+PHP_OS      : Linux - Linux lotus-Nitro-AN515-57 7.0.0-31-generic #31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2 x86_64
+INI actual  : /home/lotus/projetos/psampler
+More .INIs  :   
+CWD         : /home/lotus/projetos/psampler
+Extra dirs  : 
+VALGRIND    : Not used
+=====================================================================
+Running selected tests.
+TEST 1/5 [tests/byte_buffer.phpt]PASS ByteBuffer supports binary data, wraparound, growth, and bounds checks [tests/byte_buffer.phpt] 
+TEST 2/5 [tests/byte_buffer_stress.phpt]PASS ByteBuffer preserves FIFO order through repeated wraparound and growth [tests/byte_buffer_stress.phpt] 
+TEST 3/5 [tests/legacy_api.phpt]PASS Legacy Resampler LPCM and stereo helpers remain available [tests/legacy_api.phpt] 
+TEST 4/5 [tests/pcm_analyzer.phpt]PASS PCMAnalyzer validates PCM16 and isolates consecutive analyses [tests/pcm_analyzer.phpt] 
+TEST 5/5 [tests/ring_evidence.phpt]PASS PCMAnalyzer returns ring evidence and resets it between calls [tests/ring_evidence.phpt] 
+=====================================================================
+Number of tests :     5                 5
+Tests skipped   :     0 (  0.0%) --------
+Tests warned    :     0 (  0.0%) (  0.0%)
+Tests failed    :     0 (  0.0%) (  0.0%)
+Tests passed    :     5 (100.0%) (100.0%)
+---------------------------------------------------------------------
+Time taken      :     0 seconds
+=====================================================================

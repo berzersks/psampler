@@ -1,0 +1,5 @@
+{"duration_s":1,"jobs":1000,"p50_ms":0.071556,"p95_ms":0.085155,"p99_ms":0.092625,"max_ms":0.106273,"cpu_ms_per_job":0.064391,"jobs_s":15531.87,"rss_initial_kb":2452,"rss_peak_kb":2416,"rss_final_kb":2528,"checksum":855334}
+{"duration_s":3,"jobs":1000,"p50_ms":0.186851,"p95_ms":0.265523,"p99_ms":0.275253,"max_ms":0.298858,"cpu_ms_per_job":0.161959,"jobs_s":6174.35,"rss_initial_kb":2728,"rss_peak_kb":2544,"rss_final_kb":2728,"checksum":3078668}
+{"duration_s":5,"jobs":1000,"p50_ms":0.281589,"p95_ms":0.420574,"p99_ms":0.442205,"max_ms":0.561692,"cpu_ms_per_job":0.246560,"jobs_s":4055.65,"rss_initial_kb":2920,"rss_peak_kb":2800,"rss_final_kb":2920,"checksum":6670002}
+{"duration_s":10,"jobs":1000,"p50_ms":0.517225,"p95_ms":0.807044,"p99_ms":0.850428,"max_ms":1.146401,"cpu_ms_per_job":0.464018,"jobs_s":2154.73,"rss_initial_kb":3548,"rss_peak_kb":3408,"rss_final_kb":3548,"checksum":13852503}
+{"duration_s":15,"jobs":1000,"p50_ms":0.757289,"p95_ms":1.199303,"p99_ms":1.245324,"max_ms":1.769135,"cpu_ms_per_job":0.686178,"jobs_s":1457.09,"rss_initial_kb":4008,"rss_peak_kb":3928,"rss_final_kb":4008,"checksum":24626171}

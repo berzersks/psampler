@@ -9,6 +9,11 @@
 #define PCM_RING_SAMPLES 4000
 #define PCM_RING_FRAMES 30
 #define PCM_RING_PULSES 30
+#ifdef PCM_RING_FLOAT
+typedef float pcm_ring_number;
+#else
+typedef double pcm_ring_number;
+#endif
 typedef struct { int start_ms, end_ms, duration_ms, tone_frames; } pcm_ring_pulse;
 typedef struct {
     int state; /* 0 silence, 1 ring, 2 other */
@@ -58,11 +63,15 @@ typedef struct {
     int sample_rate, frame_duration_ms, frame_samples, frame_bytes;
     double coefficients[PCM_FREQ_COUNT];
     pcm_frame frames[PCM_MAX_FRAMES];
-    double ring_coefficients[PCM_RING_BINS], ring_hann[PCM_RING_SAMPLES];
-    double ring_x[PCM_RING_BINS], ring_y[PCM_RING_BINS];
+    pcm_ring_number ring_coefficients[PCM_RING_BINS];
+    double ring_hann[PCM_RING_SAMPLES];
+    pcm_ring_number ring_x[PCM_RING_BINS], ring_y[PCM_RING_BINS];
     double ring_squares;
     double ring_sum;
     int ring_sample_index;
+#if defined(PCM_RING_STAGED_EXPERIMENT) || defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) || defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+    const unsigned char *ring_pcm;
+#endif
 #ifdef PCM_PREDECODE_SCRATCH
     int16_t decoded[120000];
 #endif

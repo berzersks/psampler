@@ -43,6 +43,24 @@ static double ring_level(const pcm_analyzer *a,int bin) {
     double amplitude=4.0*sqrt(power)/PCM_RING_SAMPLES;
     return amplitude>0.0 ? fmax(-120.0,fmin(0.0,20.0*log10(amplitude/32768.0))) : -120.0;
 }
+#if defined(PCM_RING_STAGED_EXPERIMENT) || defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) || defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+/* Experimental second read; ringstage skips bins and loses diagnostics. */
+static void ring_bank_pass(pcm_analyzer *a,int frame,int first,int count) {
+    if(a->ring_squares==0.0)return; /* exact digital-zero fast path */
+    const unsigned char *pcm=a->ring_pcm+(size_t)frame*PCM_RING_SAMPLES*2;
+    int started=0;
+    for(int j=0;j<PCM_RING_SAMPLES;j++) {
+        int sample=sample_at(pcm,(size_t)j);
+        if(!sample&&!started)continue;
+        started=1;
+        double input=sample*a->ring_hann[j];
+        for(int i=first;i<first+count;i++) {
+            double next=input+a->ring_coefficients[i]*a->ring_x[i]-a->ring_y[i];
+            a->ring_y[i]=a->ring_x[i];a->ring_x[i]=next;
+        }
+    }
+}
+#endif
 static void ring_finish_frame(pcm_analyzer *a,pcm_ring_result *r) {
     pcm_ring_frame *f=&r->frames[r->frame_count];
     double rms=sqrt(a->ring_squares/PCM_RING_SAMPLES);
@@ -52,7 +70,27 @@ static void ring_finish_frame(pcm_analyzer *a,pcm_ring_result *r) {
     double ac_dbfs=ac_rms>0.0?fmax(-120.0,20.0*log10(ac_rms/32768.0)):-120.0;
     f->ac_rms_dbfs=ac_dbfs;
     double best=-120.0,frequency=425.0,background[10];
+#ifdef PCM_RING_STAGED_EXPERIMENT
+    /* Cauchy-Schwarz: Hann bin amplitude <= 4/N sqrt(S2*W2).
+       1499.626 safely exceeds analytic Hann W2=1499.625. */
+    double bound=4.0*sqrt(a->ring_squares*1499.626)/PCM_RING_SAMPLES;
+    if(bound>=32768.0*0.003981071705534973)
+        ring_bank_pass(a,r->frame_count,0,14);
+#endif
+#ifdef PCM_RING_FULL_TWO_PASS_EXPERIMENT
+    ring_bank_pass(a,r->frame_count,0,14);
+#endif
+#ifdef PCM_RING_ALL_TWO_PASS_EXPERIMENT
+    ring_bank_pass(a,r->frame_count,0,24);
+#endif
     for(int i=0;i<14;i++){double level=ring_level(a,i);if(level>best){best=level;frequency=395.0+5.0*i;}}
+#ifdef PCM_RING_STAGED_EXPERIMENT
+    if(best>=-48.0&&best-ac_dbfs>=1.5)
+        ring_bank_pass(a,r->frame_count,14,10);
+#endif
+#ifdef PCM_RING_FULL_TWO_PASS_EXPERIMENT
+    ring_bank_pass(a,r->frame_count,14,10);
+#endif
     for(int i=0;i<10;i++)background[i]=ring_level(a,i+14);
     PCM_SORT(background,10);
     f->ring_frequency_hz=frequency;f->ring_level_dbfs=best;
@@ -81,13 +119,15 @@ static void ring_sample(pcm_analyzer *a,pcm_ring_result *r,int sample){
         return;
     }
 #endif
-    double input=sample*a->ring_hann[at];
     a->ring_squares+=(double)sample*sample;
     a->ring_sum+=sample;
+#if !defined(PCM_RING_STAGED_EXPERIMENT) && !defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) && !defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+    pcm_ring_number input=(pcm_ring_number)(sample*a->ring_hann[at]);
     for(int i=0;i<PCM_RING_BINS;i++){
-        double next=input+a->ring_coefficients[i]*a->ring_x[i]-a->ring_y[i];
+        pcm_ring_number next=input+a->ring_coefficients[i]*a->ring_x[i]-a->ring_y[i];
         a->ring_y[i]=a->ring_x[i];a->ring_x[i]=next;
     }
+#endif
     if(++a->ring_sample_index==PCM_RING_SAMPLES)ring_finish_frame(a,r);
 }
 static void ring_finish_result(pcm_ring_result *r){
@@ -269,6 +309,9 @@ int pcm_analyzer_run(pcm_analyzer *a,const unsigned char *pcm,size_t length,pcm_
     memset(r,0,sizeof(*r));r->first_voice_ms=-1;r->last_voice_ms=-1;r->signal=PCM_SILENCE;
     memset(a->ring_x,0,sizeof(a->ring_x));memset(a->ring_y,0,sizeof(a->ring_y));
     a->ring_squares=0.0;a->ring_sum=0.0;a->ring_sample_index=0;
+#if defined(PCM_RING_STAGED_EXPERIMENT) || defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) || defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+    a->ring_pcm=pcm;
+#endif
     r->signal_features.signal=PCM_SILENCE;r->signal_features.rms_mean_dbfs=-120.0;
     r->duration_ms=(int)(length/16);int frames=(int)(length/a->frame_bytes);
 #ifdef PCM_PREDECODE_SCRATCH

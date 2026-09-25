@@ -22,9 +22,10 @@ if len(cpu_pool) < args.workers or len(set(cpu_pool[:args.workers])) != args.wor
 cpus = cpu_pool[:args.workers]
 with tempfile.TemporaryDirectory(prefix="psampler-unified-") as temporary:
     env = dict(os.environ, UNIFIED_BENCH_SAMPLES_DIR=temporary)
-    processes = [subprocess.Popen(["taskset", "-c", str(cpu), args.php, "-n",
-        "-d", "extension=" + args.extension, str(root / "bench/unified-benchmark.php"),
-        str(args.runs_per_worker)], cwd=root, env=env, text=True,
+    processes = [subprocess.Popen(["taskset", "-c", str(cpu), args.php, "-n"] +
+        (["-d", "extension=" + args.extension] if args.extension else []) +
+        [str(root / "bench/unified-benchmark.php"), str(args.runs_per_worker)],
+        cwd=root, env=env, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE) for cpu in cpus]
     summaries = []
     for process in processes:

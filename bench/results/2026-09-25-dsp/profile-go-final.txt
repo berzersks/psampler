@@ -1,0 +1,25 @@
+File: psampler-go-final
+Build ID: 057ad90d8953f90c067a48aba1512f01578e5f52
+Type: cpu
+Time: 2026-09-25 01:45:23 -04
+Duration: 8.09s, Total samples = 8.10s (100.08%)
+Showing nodes accounting for 7.98s, 98.52% of 8.10s total
+Dropped 13 nodes (cum <= 0.04s)
+Showing top 16 nodes out of 18
+      flat  flat%   sum%        cum   cum%
+     4.53s 55.93% 55.93%      4.65s 57.41%  main.(*Analyzer).ringPass
+     1.53s 18.89% 74.81%      7.60s 93.83%  main.(*Analyzer).scan
+     0.80s  9.88% 84.69%      5.54s 68.40%  main.(*Analyzer).ringSample
+     0.31s  3.83% 88.52%      0.51s  6.30%  main.sample (inline)
+     0.30s  3.70% 92.22%      0.42s  5.19%  main.(*Analyzer).spectral
+     0.20s  2.47% 94.69%      0.20s  2.47%  encoding/binary.littleEndian.Uint16 (inline)
+     0.16s  1.98% 96.67%      0.16s  1.98%  main.absInt (inline)
+     0.07s  0.86% 97.53%      0.07s  0.86%  math.archLog
+     0.04s  0.49% 98.02%      0.07s  0.86%  main.(*Analyzer).ringLevel
+     0.03s  0.37% 98.40%      8.09s 99.88%  main.(*Analyzer).Analyze
+     0.01s  0.12% 98.52%      0.46s  5.68%  main.(*Analyzer).classify
+         0     0% 98.52%      0.46s  5.68%  main.(*Analyzer).appendRegion
+         0     0% 98.52%      4.74s 58.52%  main.(*Analyzer).finishRingFrame
+         0     0% 98.52%      8.10s   100%  main.main
+         0     0% 98.52%      0.07s  0.86%  math.Log (inline)
+         0     0% 98.52%      0.06s  0.74%  math.Log10 (inline)

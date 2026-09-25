@@ -1,0 +1,142 @@
+pcm_analyzer.c:150:21: missed: couldn't vectorize loop
+pcm_analyzer.c:150:21: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:152:60: missed: couldn't vectorize loop
+pcm_analyzer.c:152:60: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:147:18: missed: couldn't vectorize loop
+pcm_analyzer.c:147:80: missed: possible alias involving gather/scatter between r_81(D)->pulses[_21].start_ms and r_81(D)->periods_ms[_23]
+pcm_analyzer.c:144:19: missed: couldn't vectorize loop
+pcm_analyzer.c:144:19: missed: not vectorized: number of iterations cannot be computed.
+pcm_analyzer.c:135:18: missed: couldn't vectorize loop
+pcm_analyzer.c:135:18: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:137:22: missed: couldn't vectorize loop
+pcm_analyzer.c:137:22: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:135:18: missed: couldn't vectorize loop
+pcm_analyzer.c:129:13: missed: not vectorized: unsupported use in stmt.
+pcm_analyzer.c:132:18: missed: couldn't vectorize loop
+pcm_analyzer.c:132:18: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:132:86: missed: not vectorized: more than one data ref in stmt: r_81(D)->pulses[kept_150] = r_81(D)->pulses[i_152];
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:158:51: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:164:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:158:51: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:164:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:147:47: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:90:18: missed: couldn't vectorize loop
+pcm_analyzer.c:90:18: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:82:18: missed: couldn't vectorize loop
+pcm_analyzer.c:82:18: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:65:16: missed: statement clobbers memory: rms_97 = sqrt (_3);
+pcm_analyzer.c:66:42: missed: statement clobbers memory: _5 = log10 (_4);
+pcm_analyzer.c:69:48: missed: statement clobbers memory: _14 = log10 (_13);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _113 = log10 (_112);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _142 = log10 (_145);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _195 = log10 (_193);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _223 = log10 (_221);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _251 = log10 (_249);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _279 = log10 (_277);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _307 = log10 (_305);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _335 = log10 (_333);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _363 = log10 (_361);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _391 = log10 (_389);
+pcm_analyzer.c:44:54: missed: statement clobbers memory: _131 = log10 (_130);
+pcm_analyzer.c:91:5: missed: statement clobbers memory: qsort (&background, 10, 8, compare_double);
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (_39, 0, 192);
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (_40, 0, 192);
+pcm_analyzer.c:102:15: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:99:69: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:177:18: missed: couldn't vectorize loop
+pcm_analyzer.c:177:18: missed: not vectorized: control flow in loop.
+pcm_analyzer.c:114:53: missed: statement clobbers memory: ring_finish_frame (a_72(D), r_73(D));
+pcm_analyzer.c:127:49: missed: statement clobbers memory: ring_finish_frame (a_72(D), r_73(D));
+pcm_analyzer.c:197:43: missed: statement clobbers memory: _23 = log10 (_22);
+pcm_analyzer.c:12:172: missed: statement clobbers memory: iftmp.14_159 = sqrt (_140);
+pcm_analyzer.c:209:26: missed: couldn't vectorize loop
+pcm_analyzer.c:209:26: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+pcm_analyzer.c:221:22: missed: couldn't vectorize loop
+pcm_analyzer.c:221:22: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+pcm_analyzer.c:223:26: missed: couldn't vectorize loop
+pcm_analyzer.c:229:24: missed: not vectorized: unsupported use in stmt.
+pcm_analyzer.c:212:22: missed: couldn't vectorize loop
+pcm_analyzer.c:250:13: missed: not vectorized: unsupported data-type double
+pcm_analyzer.c:254:22: missed: couldn't vectorize loop
+pcm_analyzer.c:254:22: missed: not vectorized: control flow in loop.
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (out_43(D), 0, 88);
+pcm_analyzer.c:12:172: missed: statement clobbers memory: iftmp.14_459 = sqrt (_175);
+pcm_analyzer.c:12:172: missed: statement clobbers memory: iftmp.14_483 = sqrt (_160);
+pcm_analyzer.c:264:5: missed: statement clobbers memory: qsort (&cvs, _4, 8, compare_double);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _159 = log (value_174);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _362 = log (value_58);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _383 = log (value_380);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _404 = log (value_401);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _425 = log (value_422);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _446 = log (value_443);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _467 = log (value_464);
+pcm_analyzer.c:238:35: missed: statement clobbers memory: _488 = log (value_485);
+pcm_analyzer.c:289:26: missed: couldn't vectorize loop
+pcm_analyzer.c:289:26: missed: not vectorized: control flow in loop.
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (s_64, 0, 112);
+pcm_analyzer.c:281:5: missed: statement clobbers memory: classify (a_70(D), pcm_71(D), start_65(D), end_67(D), _7);
+pcm_analyzer.c:282:50: missed: not vectorized: more than one data ref in stmt: r_62(D)->signal_features = MEM <struct pcm_result> [(struct pcm_segment *)r_62(D)].segments[_1].features;
+pcm_analyzer.c:299:63: missed: not vectorized: more than one data ref in stmt: r_62(D)->signal_features = MEM <struct pcm_result> [(struct pcm_segment *)r_62(D)].segments[_1].features;
+pcm_analyzer.c:280:21: missed: not vectorized: vectorization is not profitable.
+pcm_analyzer.c:37:18: missed: couldn't vectorize loop
+pcm_analyzer.c:37:55: missed: not vectorized: no vectype for stmt: a_36(D)->ring_hann[i_51] = _26;
+ scalar_type: double
+pcm_analyzer.c:36:18: missed: couldn't vectorize loop
+pcm_analyzer.c:36:52: missed: not vectorized: no vectype for stmt: a_36(D)->ring_coefficients[_19] = _20;
+ scalar_type: pcm_ring_number
+pcm_analyzer.c:35:18: missed: couldn't vectorize loop
+pcm_analyzer.c:35:49: missed: not vectorized: no vectype for stmt: a_36(D)->ring_coefficients[i_33] = _13;
+ scalar_type: pcm_ring_number
+pcm_analyzer.c:34:18: missed: couldn't vectorize loop
+pcm_analyzer.c:34:57: missed: not vectorized: no vectype for stmt: a_36(D)->coefficients[i_31] = _6;
+ scalar_type: double
+pcm_analyzer.c:318:22: missed: couldn't vectorize loop
+pcm_analyzer.c:318:22: missed: not vectorized: control flow in loop.
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (r_65(D), 0, 9800);
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (_2, 0, 192);
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:59:10: missed: statement clobbers memory: __builtin_memset (_3, 0, 192);
+pcm_analyzer.c:318:22: missed: statement clobbers memory: a_69(D)->frames[i_117] = scan_frame (a_69(D), _15, _14, _9);
+pcm_analyzer.c:324:83: missed: statement clobbers memory: append_region (a_69(D), pcm_78(D), r_65(D), start_113, _19);
+pcm_analyzer.c:328:69: missed: statement clobbers memory: append_region (a_69(D), pcm_78(D), r_65(D), start_81, _21);
+pcm_analyzer.c:343:5: missed: statement clobbers memory: ring_finish_result (_46);

@@ -51,7 +51,8 @@ $canonical = static function (array $r) use ($pick, $keys, $featureKeys, $pulseK
 };
 $differences = [];
 $count = 0;
-foreach (['fixtures', 'ring-fixtures'] as $folder) {
+$folders = array_slice($argv, 2) ?: ['fixtures', 'ring-fixtures'];
+foreach ($folders as $folder) {
     $goRows = [];
     $command = escapeshellarg($goBinary) . ' -mode=results -dir=' . escapeshellarg(__DIR__ . '/' . $folder);
     exec($command, $lines, $status);
@@ -73,6 +74,7 @@ foreach (['fixtures', 'ring-fixtures'] as $folder) {
 }
 $result = ['fixtures' => $count, 'digest_differences' => count($differences),
     'first_differences' => array_slice($differences, 0, 20)];
-file_put_contents(__DIR__ . '/results/2026-09-25/c-go-comparison.json', json_encode($result, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+$output = getenv('PSAMPLER_COMPARE_OUTPUT') ?: __DIR__ . '/results/2026-09-25/c-go-comparison.json';
+file_put_contents($output, json_encode($result, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 echo json_encode($result, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR), PHP_EOL;
 exit($differences ? 1 : 0);

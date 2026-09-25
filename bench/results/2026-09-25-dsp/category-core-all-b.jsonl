@@ -1,0 +1,8 @@
+{"category":"music","jobs":1000,"cpu_ms_per_job":0.956747,"p50_ms":0.949440,"p95_ms":0.995797,"p99_ms":1.129984,"jobs_s":1045.03,"rss_peak_kb":2484,"sink":15375000}
+{"category":"noise","jobs":1000,"cpu_ms_per_job":1.612084,"p50_ms":1.593607,"p95_ms":1.755716,"p99_ms":1.810370,"jobs_s":620.20,"rss_peak_kb":2484,"sink":30750000}
+{"category":"ring_clean","jobs":1000,"cpu_ms_per_job":0.953518,"p50_ms":0.951325,"p95_ms":0.984340,"p99_ms":1.017164,"jobs_s":1048.53,"rss_peak_kb":2484,"sink":46126025}
+{"category":"ring_plus_music","jobs":1000,"cpu_ms_per_job":0.957370,"p50_ms":0.953301,"p95_ms":0.991717,"p99_ms":1.030978,"jobs_s":1044.39,"rss_peak_kb":2484,"sink":61502050}
+{"category":"ring_plus_noise","jobs":1000,"cpu_ms_per_job":1.041007,"p50_ms":1.031338,"p95_ms":1.098392,"p99_ms":1.237874,"jobs_s":960.48,"rss_peak_kb":2484,"sink":76878075}
+{"category":"ring_plus_voice","jobs":1000,"cpu_ms_per_job":1.010751,"p50_ms":0.961360,"p95_ms":1.380185,"p99_ms":1.617515,"jobs_s":988.90,"rss_peak_kb":2484,"sink":92254100}
+{"category":"silence","jobs":1000,"cpu_ms_per_job":0.201347,"p50_ms":0.200288,"p95_ms":0.210210,"p99_ms":0.225998,"jobs_s":4966.45,"rss_peak_kb":2484,"sink":92254100}
+{"category":"voice","jobs":1000,"cpu_ms_per_job":0.935475,"p50_ms":0.931614,"p95_ms":0.963473,"p99_ms":1.002606,"jobs_s":1068.78,"rss_peak_kb":2484,"sink":107629100}

@@ -1,0 +1,13 @@
+date=2026-09-25
+psampler_git_sha=0451f551d2fb914f38870ca6729ee09704f75f36
+pcg729_git_sha=cc6879958a678e92987e60a7909ff053a26075f1
+php=PHP 8.5.10 (cli) (built: Sep 25 2026 02:06:20) (ZTS)
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+go=go version go1.27.1 linux/amd64
+zts=yes
+spc_extra_cflags=-fstack-protector-strong -Os -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -g -fno-ident -fPIE -fPIC
+pcm_analyzer_make_rule=$(LIBTOOL) --tag=CC --mode=compile $(CC) -Iext/psampler/ -I/home/lotus/CLionProjects/pcg729/source/php-src/ext/psampler/ $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS) -O3 -fno-fast-math -c /home/lotus/CLionProjects/pcg729/source/php-src/ext/psampler/pcm_analyzer.c -o ext/psampler/pcm_analyzer.lo  -MMD -MF ext/psampler/pcm_analyzer.dep -MT ext/psampler/pcm_analyzer.lo
+sha256(config.m4)=a4d541b8285bb2100a44c645423c5cca760cef190065e4be345a22febd83738f
+sha256(pcm_analyzer.c)=2535afe1b189a73b6598994b19c6a9337f35b84a0dc9a7130548de11985029b8
+sha256(pcm_analyzer.h)=cd1c2a6add0b12ec6540190499ace407b74e3d4d9cba588c8022db88707d441e
+sha256(bench/pcmgo/main.go)=a74a7ffbf86b537f7b4bd08407c476424d1fef578426be4e38fe7e81837707a8
