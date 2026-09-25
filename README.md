@@ -2,6 +2,51 @@
 
 Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmpeg.
 
+Versão atual: **0.5.0**.
+
+## PCMAnalyzer
+
+```php
+$analyzer = new PCMAnalyzer(sampleRate: 8000, frameDurationMs: 20);
+$features = $analyzer->analyze($pcm16leMono);
+```
+
+`analyze()` aceita uma string binária PCM signed 16-bit, mono, little-endian,
+8 kHz. O construtor aceita somente 8 kHz e quadros de 20 ms nesta versão.
+O limite é 15 segundos (240.000 bytes) e 64 regiões ativas. Tamanho ímpar,
+áudio acima do limite, configuração não suportada e excesso de regiões lançam
+`ValueError`. Um quadro final incompleto é ignorado sem ler além da string;
+`duration_ms` ainda reflete a duração total recebida em amostras completas.
+
+O resultado contém `duration_ms`, `active_audio_ms`, `silence_ms`, `voice_ms`,
+`longest_segment_ms`, `segment_count`, `started_at_ms`, `last_voice_ms`,
+`tone_ms`, `noise_ms`, `music_ms`, `voice_ratio`, `silence_ratio`, `signal`,
+`signal_features` e `segments`. Cada segmento tem início, fim, duração,
+`signal`, métricas acústicas e, quando é `voice_like`, duração de quadros
+ativos e maior trecho contínuo. `signal_features` inclui RMS, cruzamentos,
+diferença normalizada e estatísticas espectrais. O módulo descreve áudio;
+qualquer limiar operacional ou decisão de telefonia pertence à aplicação.
+
+O processamento lê diretamente os bytes da `zend_string`. Usa um quadro
+principal por amostra, uma passagem curta de sondas Goertzel por região e
+memória limitada por 750 quadros e 64 segmentos; tempo O(n), memória O(1)
+para a janela máxima fixa. Cada objeto guarda seus próprios coeficientes e
+scratch buffers. `analyze()` reinicia o estado por chamada e não usa globals
+mutáveis, inclusive em builds ZTS. O mesmo objeto pode ser reutilizado entre
+jobs; chamadas simultâneas ao **mesmo** objeto exigem sincronização pelo
+chamador.
+
+Testes e comparação reproduzível:
+
+```sh
+php bench/generate-fixtures.php
+go build -o /tmp/pcmgo bench/pcmgo/main.go
+./php bench/shadow-compare.php /tmp/pcmgo
+./php bench/shadow-compare.php /tmp/pcmgo --bench # inclui medição rápida offline
+./php run-tests.php -q tests/pcm_analyzer.phpt tests/byte_buffer.phpt tests/byte_buffer_stress.phpt
+./php tests/pcm_analyzer_stress.php
+```
+
 Também expõe `ByteBuffer`, uma fila binária mutável implementada como ring
 buffer para acumular e consumir frames sem copiar os bytes restantes a cada
 leitura.

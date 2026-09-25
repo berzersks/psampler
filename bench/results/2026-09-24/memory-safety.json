@@ -1,0 +1,13 @@
+{
+  "php_zts_calls": 100000,
+  "fuzz_cases": 1024,
+  "php_initial_rss_kb": 19068,
+  "php_peak_rss_kb": 20364,
+  "php_final_rss_kb": 20364,
+  "php_delta_rss_kb": 1296,
+  "asan_ubsan_core_calls": 100000,
+  "asan_ubsan_result": "PASS",
+  "go_testing_b_15s_voice_ns_per_op": 376145,
+  "go_testing_b_bytes_per_op": 0,
+  "go_testing_b_allocs_per_op": 0
+}

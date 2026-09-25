@@ -1,0 +1,422 @@
+[
+  {
+    "implementation": "php",
+    "finalizations": 100,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 2.121,
+      "p95_ms": 2.121,
+      "p99_ms": 2.121,
+      "max_ms": 2.694,
+      "latencies_ms": [
+        2.087,
+        2.121,
+        2.694
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 100,
+      "analysis_workers": 2,
+      "submission_coroutines": 100,
+      "analysis_completed": 4,
+      "analysis_failed_open": 96,
+      "cpu_s": 12.389,
+      "pool_worker_cpu_s": null,
+      "rss_mb": 144.52,
+      "rss_initial_mb": 23.65,
+      "rss_final_mb": 72.46,
+      "packets_sent": 299600,
+      "packets_received": 299600,
+      "endpoint_packets_received": 299600,
+      "loss": 0,
+      "jitter_ms": 1.195,
+      "relay_packets": 299600,
+      "late_packets": 64828,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 21.111,
+      "max_queue_frames": 3,
+      "avg_interval_error_ms": 1.084,
+      "command_latency_p95_ms": 1.582,
+      "command_latency_max_ms": 15.937,
+      "analysis_p50_ms": 0.005,
+      "analysis_p95_ms": 280.725,
+      "analysis_p99_ms": 601.283,
+      "analysis_max_ms": 601.307,
+      "analysis_wall_ms": 19924.31,
+      "analysis_pool": {
+        "jobs_completed": 4,
+        "jobs_timeout": 2,
+        "jobs_overloaded": 28,
+        "deadline_rejected": 28,
+        "service_mean_ms": 247.73573093414308,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1326064,
+          1326065
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 4,
+        "overloaded": 28,
+        "timeout": 2
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  },
+  {
+    "implementation": "native",
+    "finalizations": 100,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 2.899,
+      "p95_ms": 2.899,
+      "p99_ms": 2.899,
+      "max_ms": 3.025,
+      "latencies_ms": [
+        2.896,
+        2.899,
+        3.025
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 100,
+      "analysis_workers": 2,
+      "submission_coroutines": 100,
+      "analysis_completed": 4,
+      "analysis_failed_open": 96,
+      "cpu_s": 12.447,
+      "pool_worker_cpu_s": 1.43,
+      "rss_mb": 138.71,
+      "rss_initial_mb": 23.65,
+      "rss_final_mb": 67.46,
+      "packets_sent": 299200,
+      "packets_received": 299200,
+      "endpoint_packets_received": 299200,
+      "loss": 0,
+      "jitter_ms": 1.062,
+      "relay_packets": 299200,
+      "late_packets": 50280,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 34.349,
+      "max_queue_frames": 6,
+      "avg_interval_error_ms": 1.073,
+      "command_latency_p95_ms": 1.909,
+      "command_latency_max_ms": 17.28,
+      "analysis_p50_ms": 0.014,
+      "analysis_p95_ms": 264.894,
+      "analysis_p99_ms": 607.545,
+      "analysis_max_ms": 607.606,
+      "analysis_wall_ms": 19947.498,
+      "analysis_pool": {
+        "jobs_completed": 6,
+        "jobs_timeout": 0,
+        "jobs_overloaded": 29,
+        "deadline_rejected": 29,
+        "service_mean_ms": 236.02721101045609,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1326257,
+          1326258
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 6,
+        "overloaded": 29,
+        "timeout": 0
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  },
+  {
+    "implementation": "php",
+    "finalizations": 250,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 2.355,
+      "p95_ms": 2.355,
+      "p99_ms": 2.355,
+      "max_ms": 3.221,
+      "latencies_ms": [
+        1.746,
+        2.355,
+        3.221
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 250,
+      "analysis_workers": 2,
+      "submission_coroutines": 250,
+      "analysis_completed": 4,
+      "analysis_failed_open": 246,
+      "cpu_s": 12.392,
+      "pool_worker_cpu_s": null,
+      "rss_mb": 149.1,
+      "rss_initial_mb": 23.65,
+      "rss_final_mb": 71.53,
+      "packets_sent": 299200,
+      "packets_received": 299200,
+      "endpoint_packets_received": 299200,
+      "loss": 0,
+      "jitter_ms": 1.643,
+      "relay_packets": 299200,
+      "late_packets": 76613,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 18.823,
+      "max_queue_frames": 5,
+      "avg_interval_error_ms": 1.296,
+      "command_latency_p95_ms": 2.392,
+      "command_latency_max_ms": 13.64,
+      "analysis_p50_ms": 44.461,
+      "analysis_p95_ms": 49.971,
+      "analysis_p99_ms": 564.321,
+      "analysis_max_ms": 601.892,
+      "analysis_wall_ms": 19936.063,
+      "analysis_pool": {
+        "jobs_completed": 4,
+        "jobs_timeout": 2,
+        "jobs_overloaded": 243,
+        "deadline_rejected": 243,
+        "service_mean_ms": 254.19763227939606,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1326638,
+          1326639
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 4,
+        "overloaded": 243,
+        "timeout": 2
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  },
+  {
+    "implementation": "native",
+    "finalizations": 250,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 2.609,
+      "p95_ms": 2.609,
+      "p99_ms": 2.609,
+      "max_ms": 2.622,
+      "latencies_ms": [
+        2.54,
+        2.609,
+        2.622
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 250,
+      "analysis_workers": 2,
+      "submission_coroutines": 250,
+      "analysis_completed": 4,
+      "analysis_failed_open": 246,
+      "cpu_s": 12.796,
+      "pool_worker_cpu_s": null,
+      "rss_mb": 147.02,
+      "rss_initial_mb": 23.64,
+      "rss_final_mb": 73.11,
+      "packets_sent": 298800,
+      "packets_received": 298800,
+      "endpoint_packets_received": 298800,
+      "loss": 0,
+      "jitter_ms": 1.491,
+      "relay_packets": 298800,
+      "late_packets": 99047,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 17.372,
+      "max_queue_frames": 8,
+      "avg_interval_error_ms": 1.498,
+      "command_latency_p95_ms": 2.689,
+      "command_latency_max_ms": 8.341,
+      "analysis_p50_ms": 39.08,
+      "analysis_p95_ms": 43.988,
+      "analysis_p99_ms": 537.971,
+      "analysis_max_ms": 603.311,
+      "analysis_wall_ms": 19916.876,
+      "analysis_pool": {
+        "jobs_completed": 4,
+        "jobs_timeout": 2,
+        "jobs_overloaded": 208,
+        "deadline_rejected": 208,
+        "service_mean_ms": 236.71458254337313,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1326861,
+          1326863
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 4,
+        "overloaded": 208,
+        "timeout": 2
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  },
+  {
+    "implementation": "php",
+    "finalizations": 500,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 2.69,
+      "p95_ms": 2.69,
+      "p99_ms": 2.69,
+      "max_ms": 3.026,
+      "latencies_ms": [
+        2.236,
+        2.69,
+        3.026
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 500,
+      "analysis_workers": 2,
+      "submission_coroutines": 500,
+      "analysis_completed": 4,
+      "analysis_failed_open": 496,
+      "cpu_s": 11.525,
+      "pool_worker_cpu_s": null,
+      "rss_mb": 131.55,
+      "rss_initial_mb": 23.65,
+      "rss_final_mb": 63.63,
+      "packets_sent": 300800,
+      "packets_received": 300800,
+      "endpoint_packets_received": 300800,
+      "loss": 0,
+      "jitter_ms": 1.361,
+      "relay_packets": 300800,
+      "late_packets": 73850,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 15.434,
+      "max_queue_frames": 7,
+      "avg_interval_error_ms": 1.291,
+      "command_latency_p95_ms": 2.106,
+      "command_latency_max_ms": 11.054,
+      "analysis_p50_ms": 24.905,
+      "analysis_p95_ms": 36.52,
+      "analysis_p99_ms": 294.231,
+      "analysis_max_ms": 607.313,
+      "analysis_wall_ms": 19947.522,
+      "analysis_pool": {
+        "jobs_completed": 4,
+        "jobs_timeout": 2,
+        "jobs_overloaded": 307,
+        "deadline_rejected": 307,
+        "service_mean_ms": 246.7945047044754,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1327095,
+          1327096
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 4,
+        "overloaded": 307,
+        "timeout": 2
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  },
+  {
+    "implementation": "native",
+    "finalizations": 500,
+    "ack_probe": {
+      "calls": 3,
+      "p50_ms": 1.82,
+      "p95_ms": 1.82,
+      "p99_ms": 1.82,
+      "max_ms": 3.111,
+      "latencies_ms": [
+        1.591,
+        1.82,
+        3.111
+      ]
+    },
+    "stress": {
+      "normal_calls": 200,
+      "mailbox_finalizations": 500,
+      "analysis_workers": 2,
+      "submission_coroutines": 500,
+      "analysis_completed": 4,
+      "analysis_failed_open": 496,
+      "cpu_s": 12.346,
+      "pool_worker_cpu_s": null,
+      "rss_mb": 127.04,
+      "rss_initial_mb": 23.64,
+      "rss_final_mb": 59.01,
+      "packets_sent": 298800,
+      "packets_received": 298800,
+      "endpoint_packets_received": 298800,
+      "loss": 0,
+      "jitter_ms": 0.462,
+      "relay_packets": 298800,
+      "late_packets": 89059,
+      "dropped_frames": 0,
+      "relay_drop_rate": 0,
+      "max_late_ms": 17.962,
+      "max_queue_frames": 7,
+      "avg_interval_error_ms": 1.472,
+      "command_latency_p95_ms": 2.872,
+      "command_latency_max_ms": 9.797,
+      "analysis_p50_ms": 28.906,
+      "analysis_p95_ms": 40.216,
+      "analysis_p99_ms": 293.733,
+      "analysis_max_ms": 600.869,
+      "analysis_wall_ms": 19949.355,
+      "analysis_pool": {
+        "jobs_completed": 4,
+        "jobs_timeout": 2,
+        "jobs_overloaded": 440,
+        "deadline_rejected": 440,
+        "service_mean_ms": 236.197584335804,
+        "workers": 2,
+        "queue_capacity": 32,
+        "in_flight": 0,
+        "analysis_queue": 0,
+        "worker_pids": [
+          1327327,
+          1327328
+        ]
+      },
+      "analysis_pool_delta": {
+        "completed": 4,
+        "overloaded": 440,
+        "timeout": 2
+      },
+      "send_failures": 0,
+      "fd_delta": 0
+    }
+  }
+]

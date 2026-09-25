@@ -6,7 +6,7 @@
  *
  * VISAO GERAL
  * -----------
- * Esta extensao expoe ao userland PHP tres classes e duas funcoes globais,
+ * Esta extensao expoe ao userland PHP quatro classes e duas funcoes globais,
  * todas voltadas para processamento de audio PCM de 16 bits (signed,
  * little-endian no fluxo intercalado de saida):
  *
@@ -23,11 +23,14 @@
  *                          crescimento geometrico e remocao sem copiar o
  *                          restante dos dados.
  *
- *   4) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
+ *   4) class PCMAnalyzer -> extracao limitada de features acusticas sobre
+ *                           PCM16LE mono 8 kHz em quadros de 20 ms.
+ *
+ *   5) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
  *                       -> intercala dois canais PCM 16-bit (L e R) em um
  *                          unico stream estereo intercalado.
  *
- *   5) function monoToStereo(string $pcmData): string
+ *   6) function monoToStereo(string $pcmData): string
  *                       -> duplica cada amostra PCM 16-bit mono nos canais
  *                          esquerdo e direito de um stream estereo.
  *
@@ -149,8 +152,9 @@ extern zend_module_entry psampler_module_entry;
  *           tabela de funcoes do modulo.
  *   0.3.0 - Adicionada a funcao global monoToStereo().
  *   0.4.0 - Adicionada a classe ByteBuffer com armazenamento circular.
+ *   0.5.0 - Adicionada a classe PCMAnalyzer para features acústicas PCM16.
  */
-#define PHP_PSAMPLER_VERSION "0.4.0"
+#define PHP_PSAMPLER_VERSION "0.5.0"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)

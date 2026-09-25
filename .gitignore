@@ -128,3 +128,7 @@ perf-flat.txt
 /mono_to_stereocpp
 /voice_benchmark_go
 /voice_benchmark_go_debug
+
+/bench/fixtures/
+/bench/shadow-report.json
+/bench/__pycache__/

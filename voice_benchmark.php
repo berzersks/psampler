@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-
+\Swoole\Runtime::enableCoroutine();
 const CHECKSUM_MODULUS = 2147483647;
 const CHECKSUM_MULTIPLIER = 65599;
 const BYTE_BUFFER_INITIAL_CAPACITY = 4096;
@@ -131,7 +131,7 @@ function runCall(
             $deadlineNs = $startNs + (($tick + 1) * $intervalNs);
             $nowNs = hrtime(true);
             if ($nowNs < $deadlineNs) {
-                Swoole\Coroutine::sleep(($deadlineNs - $nowNs) / 1_000_000_000);
+                co::sleep(($deadlineNs - $nowNs) / 1_000_000_000);
             }
 
             $actualNs = hrtime(true);

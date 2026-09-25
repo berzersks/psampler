@@ -3,8 +3,11 @@
 #endif
 
 #include "php.h"
+#include "ext/standard/info.h"
+#include "Zend/zend_exceptions.h"
 #include "php_psampler.h"
 #include "byte_buffer.h"
+#include "pcm_analyzer.h"
 #include <math.h>
 #include <zend_smart_str.h>
 #include <string.h>
@@ -19,6 +22,128 @@
 
 static zend_class_entry *psampler_ce;
 static zend_class_entry *lpcm_ce;
+static zend_class_entry *pcm_analyzer_ce;
+static zend_object_handlers pcm_analyzer_handlers;
+
+typedef struct {
+    pcm_analyzer analyzer;
+    zend_object std;
+} pcm_analyzer_object;
+
+#define PCM_ANALYZER_OBJ(zv) ((pcm_analyzer_object *)((char *)Z_OBJ_P(zv) - XtOffsetOf(pcm_analyzer_object, std)))
+
+static zend_object *pcm_analyzer_create(zend_class_entry *ce)
+{
+    pcm_analyzer_object *obj = zend_object_alloc(sizeof(*obj), ce);
+    zend_object_std_init(&obj->std, ce);
+    object_properties_init(&obj->std, ce);
+    obj->std.handlers = &pcm_analyzer_handlers;
+    pcm_analyzer_init(&obj->analyzer);
+    return &obj->std;
+}
+
+static void pcm_analyzer_free(zend_object *object)
+{
+    pcm_analyzer_object *obj = (pcm_analyzer_object *)((char *)object - XtOffsetOf(pcm_analyzer_object, std));
+    zend_object_std_dtor(&obj->std);
+}
+
+PHP_METHOD(PCMAnalyzer, __construct)
+{
+    zend_long rate = 8000, frame_ms = 20;
+    ZEND_PARSE_PARAMETERS_START(0, 2)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(rate)
+        Z_PARAM_LONG(frame_ms)
+    ZEND_PARSE_PARAMETERS_END();
+    if (rate != 8000 || frame_ms != 20) {
+        zend_value_error("PCMAnalyzer currently supports only 8000 Hz and 20 ms frames");
+        RETURN_THROWS();
+    }
+}
+
+static void pcm_add_features(zval *array, const pcm_features *f)
+{
+    array_init(array);
+    add_assoc_string(array, "signal", (char *)pcm_signal_name(f->signal));
+    add_assoc_long(array, "active_frames", f->active_frames);
+    add_assoc_double(array, "rms_mean_dbfs", f->rms_mean_dbfs);
+    add_assoc_double(array, "rms_std_db", f->rms_std_db);
+    add_assoc_double(array, "crossing_mean", f->crossing_mean);
+    add_assoc_double(array, "crossing_std", f->crossing_std);
+    add_assoc_double(array, "crossing_interval_cv", f->crossing_interval_cv);
+    add_assoc_double(array, "normalized_difference", f->normalized_difference);
+    add_assoc_long(array, "first_active_ms", f->first_active_ms);
+    if (f->active_frames) {
+        add_assoc_double(array, "dominant_tone_strength", f->dominant_tone_strength);
+        add_assoc_double(array, "spectral_variability", f->spectral_variability);
+        add_assoc_double(array, "spectral_entropy", f->spectral_entropy);
+    }
+}
+
+PHP_METHOD(PCMAnalyzer, analyze)
+{
+    zend_string *pcm;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(pcm)
+    ZEND_PARSE_PARAMETERS_END();
+    size_t length = ZSTR_LEN(pcm);
+    if (length & 1) {
+        zend_value_error("PCM16 input length must be even");
+        RETURN_THROWS();
+    }
+    if (length > 240000) {
+        zend_value_error("PCM16 input exceeds the 15-second limit");
+        RETURN_THROWS();
+    }
+    pcm_analyzer_object *obj = PCM_ANALYZER_OBJ(getThis());
+    pcm_result result;
+    if (pcm_analyzer_run(&obj->analyzer, (const unsigned char *)ZSTR_VAL(pcm), length, &result) != 0) {
+        zend_value_error("PCM16 input exceeds the 64-segment limit");
+        RETURN_THROWS();
+    }
+    array_init(return_value);
+    add_assoc_long(return_value, "duration_ms", result.duration_ms);
+    add_assoc_long(return_value, "active_audio_ms", result.active_audio_ms);
+    add_assoc_long(return_value, "silence_ms", result.silence_ms);
+    add_assoc_long(return_value, "voice_ms", result.voice_ms);
+    add_assoc_long(return_value, "longest_segment_ms", result.longest_segment_ms);
+    add_assoc_long(return_value, "segment_count", result.segment_count);
+    add_assoc_long(return_value, "first_voice_segment_ms", result.first_voice_segment_ms);
+    add_assoc_long(return_value, "pause_count", result.pause_count);
+    add_assoc_double(return_value, "mean_pause_ms", result.mean_pause_ms);
+    if (result.first_voice_ms >= 0) add_assoc_long(return_value, "started_at_ms", result.first_voice_ms);
+    else add_assoc_null(return_value, "started_at_ms");
+    if (result.last_voice_ms >= 0) add_assoc_long(return_value, "last_voice_ms", result.last_voice_ms);
+    else add_assoc_null(return_value, "last_voice_ms");
+    add_assoc_long(return_value, "tone_ms", result.tone_ms);
+    add_assoc_long(return_value, "noise_ms", result.noise_ms);
+    add_assoc_long(return_value, "music_ms", result.music_ms);
+    add_assoc_double(return_value, "voice_ratio", result.voice_ratio);
+    add_assoc_double(return_value, "silence_ratio", result.silence_ratio);
+    add_assoc_string(return_value, "signal", (char *)pcm_signal_name(result.signal));
+    zval features, segments;
+    pcm_add_features(&features, &result.signal_features);
+    add_assoc_zval(return_value, "signal_features", &features);
+    array_init(&segments);
+    for (int i = 0; i < result.all_segment_count; i++) {
+        const pcm_segment *s = &result.segments[i];
+        zval segment, segment_features;
+        array_init(&segment);
+        add_assoc_long(&segment, "started_at_ms", s->started_at_ms);
+        add_assoc_long(&segment, "ended_at_ms", s->ended_at_ms);
+        add_assoc_long(&segment, "duration_ms", s->duration_ms);
+        add_assoc_string(&segment, "signal", (char *)pcm_signal_name(s->signal));
+        pcm_add_features(&segment_features, &s->features);
+        add_assoc_zval(&segment, "features", &segment_features);
+        if (s->signal == PCM_VOICE) {
+            add_assoc_long(&segment, "vad_voice_ms", s->vad_voice_ms);
+            add_assoc_long(&segment, "vad_longest_ms", s->vad_longest_ms);
+        }
+        add_next_index_zval(&segments, &segment);
+    }
+    add_assoc_zval(return_value, "segments", &segments);
+}
 
 typedef struct _psampler_context {
     double ratio;
@@ -342,7 +467,7 @@ PHP_METHOD(Resampler, sample)
     double step = 1.0 / ctx->ratio;
     size_t max_out_samples = 0;
     
-    if (ctx->buffer_used > filter_half) {
+    if (ctx->buffer_used > (size_t)filter_half) {
         max_out_samples = (size_t)((ctx->buffer_used - filter_half) * ctx->ratio);
     }
     
@@ -912,6 +1037,21 @@ static const zend_function_entry lpcm_methods[] = {
     PHP_FE_END
 };
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_pcm_analyzer_construct, 0, 0, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, sampleRate, IS_LONG, 0, "8000")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, frameDurationMs, IS_LONG, 0, "20")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_pcm_analyzer_analyze, 0, 1, IS_ARRAY, 0)
+    ZEND_ARG_TYPE_INFO(0, pcm, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry pcm_analyzer_methods[] = {
+    PHP_ME(PCMAnalyzer, __construct, arginfo_pcm_analyzer_construct, ZEND_ACC_PUBLIC)
+    PHP_ME(PCMAnalyzer, analyze, arginfo_pcm_analyzer_analyze, ZEND_ACC_PUBLIC)
+    PHP_FE_END
+};
+
 PHP_MINIT_FUNCTION(psampler)
 {
     zend_class_entry ce;
@@ -935,6 +1075,13 @@ PHP_MINIT_FUNCTION(psampler)
     lpcm_ce->create_object = lpcm_create;
 
     psampler_register_byte_buffer_class();
+    memcpy(&pcm_analyzer_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+    pcm_analyzer_handlers.free_obj = pcm_analyzer_free;
+    pcm_analyzer_handlers.offset = XtOffsetOf(pcm_analyzer_object, std);
+    pcm_analyzer_handlers.clone_obj = NULL;
+    INIT_CLASS_ENTRY(ce, "PCMAnalyzer", pcm_analyzer_methods);
+    pcm_analyzer_ce = zend_register_internal_class(&ce);
+    pcm_analyzer_ce->create_object = pcm_analyzer_create;
     
     return SUCCESS;
 }
@@ -948,7 +1095,7 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_header(2, "psampler support", "enabled");
     php_info_print_table_row(2, "Version", PHP_PSAMPLER_VERSION);
     php_info_print_table_row(2, "Description",
-        "Reamostragem (resampling) e manipulacao de audio PCM linear (LPCM) 16-bit");
+        "Reamostragem, manipulacao PCM e extracao de features acusticas PCM16");
     php_info_print_table_row(2, "Author", "psampler");
     php_info_print_table_end();
 
@@ -967,6 +1114,8 @@ PHP_MINFO_FUNCTION(psampler)
         "__construct(int initialCapacity=4096), append(string): void, "
         "length(): int, has(int): bool, pop(int): string, peek(int): string, "
         "discard(int): void, clear(): void, capacity(): int");
+    php_info_print_table_row(2, "PCMAnalyzer",
+        "__construct(int sampleRate=8000, int frameDurationMs=20), analyze(string pcm): array");
     php_info_print_table_end();
 
     // Funcoes globais expostas ao userland

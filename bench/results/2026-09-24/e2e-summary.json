@@ -1,0 +1,11 @@
+{
+  "test": "MailboxEndToEndTest.php",
+  "status": "PASS",
+  "scenario_matrix_calls": 42,
+  "enforce_calls": 49,
+  "enforce_ack_b_p50_ms": 7.16,
+  "enforce_ack_b_p95_ms": 8.69,
+  "enforce_ack_b_p99_ms": 9.226,
+  "enforce_ack_b_max_ms": 9.226,
+  "concurrent_rtp_stress": false
+}

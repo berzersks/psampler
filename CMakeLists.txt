@@ -11,4 +11,6 @@ add_executable(psampler
         byte_buffer.h
         php_psampler.h
         psampler.c
+        pcm_analyzer.c
+        pcm_analyzer.h
         README.md)

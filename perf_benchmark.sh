@@ -190,10 +190,11 @@ fi
 
 command -v perf >/dev/null 2>&1 || fail 'perf não foi encontrado no PATH' 127
 
-language='go'
+language='php'
 duration='10'
 calls='50'
-mode='string'
+mode='bytebuffer'
+#throughput realtime
 runtime_mode='realtime'
 frame_bytes='1920'
 chunk='1024'
@@ -247,9 +248,9 @@ fi
 
 case "$language" in
     go)
-        [[ -x ./voice_benchmark_go ]] || \
-            fail 'voice_benchmark_go não existe ou não é executável; compile com: go build -o voice_benchmark_go voice_benchmark.go'
-        benchmark_command=(./voice_benchmark_go)
+        [[ -x ./voice_benchmark_go_debug ]] || \
+            fail 'voice_benchmark_go_debug não existe ou não é executável; compile com: go build -o voice_benchmark_go_debug voice_benchmark.go'
+        benchmark_command=(./voice_benchmark_go_debug)
         ;;
     php)
         [[ -x ./php ]] || fail 'o binário ./php não existe ou não é executável'
