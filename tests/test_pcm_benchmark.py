@@ -89,7 +89,7 @@ def test_php_hot_path():
     source = (ROOT/'pcm_benchmark.php').read_text()
     pipeline = source.split('function pcmPipeline(', 1)[1].split('final class PcmCallState', 1)[0]
     measured = source.split('$initial = memory_get_usage();', 1)[1].split('// Everything below', 1)[0]
-    worker = source.split('$fiber = new Fiber(', 1)[1].split('$fiber->start();', 1)[0]
+    worker = source.split('Swoole\\Coroutine::create(', 1)[1].split('$completed->push(', 1)[0]
     for block in [pipeline, measured, worker]:
         assert 'toString(' not in block and 'hash(' not in block and 'pcmValidate(' not in block
 

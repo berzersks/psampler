@@ -15,14 +15,19 @@
 #include <math.h>
 #include <zend_smart_str.h>
 #include <string.h>
+#ifdef ZTS
+#include "TSRM.h"
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 #define FILTER_LENGTH 64
+#define FILTER_PHASES 256
 #define KAISER_BETA 8.6
 #define MAX_BUFFER_SIZE 8192
+#define FILTER_CACHE_LIMIT 16
 
 static zend_class_entry *psampler_ce;
 static zend_class_entry *lpcm_ce;
@@ -205,6 +210,16 @@ PHP_METHOD(PCMAnalyzer, analyze)
     add_assoc_zval(return_value,"ring",&ring);
 }
 
+typedef struct _psampler_filter_bank {
+    double src_rate;
+    double dst_rate;
+    double coefficients[FILTER_LENGTH * FILTER_PHASES];
+    unsigned int references;
+    zend_bool cached;
+    uint64_t last_used;
+    struct _psampler_filter_bank *next;
+} psampler_filter_bank;
+
 typedef struct _psampler_context {
     double ratio;
     double src_rate;
@@ -217,12 +232,33 @@ typedef struct _psampler_context {
     
     double frac_pos;
     
-    double filter_bank[FILTER_LENGTH * 256];
+    psampler_filter_bank *filter_bank;
     int filter_length;
     int phases;
     
     struct _psampler_context *next;
 } psampler_context;
+
+static psampler_filter_bank *filter_cache;
+static size_t filter_cache_size;
+static uint64_t filter_cache_clock;
+#ifdef ZTS
+static MUTEX_T filter_cache_mutex;
+#endif
+
+static void filter_cache_lock(void)
+{
+#ifdef ZTS
+    tsrm_mutex_lock(filter_cache_mutex);
+#endif
+}
+
+static void filter_cache_unlock(void)
+{
+#ifdef ZTS
+    tsrm_mutex_unlock(filter_cache_mutex);
+#endif
+}
 
 typedef struct {
     psampler_context *contexts;
@@ -259,14 +295,6 @@ static double bessel_i0(double x)
     return sum;
 }
 
-// Gera janela Kaiser
-static double kaiser_window(int n, int N, double beta)
-{
-    double alpha = (N - 1) / 2.0;
-    double arg = beta * sqrt(1.0 - pow((n - alpha) / alpha, 2.0));
-    return bessel_i0(arg) / bessel_i0(beta);
-}
-
 // Função sinc
 static double sinc(double x)
 {
@@ -274,38 +302,158 @@ static double sinc(double x)
     return sin(M_PI * x) / (M_PI * x);
 }
 
-// Gera banco de filtros polyphase de alta qualidade
-static void generate_filter_bank(psampler_context *ctx)
+/* Gera somente os coeficientes imutáveis. A janela Kaiser também é invariável
+ * entre as fases, portanto é calculada uma vez por tap, não 256 vezes. */
+static void generate_filter_bank(psampler_filter_bank *bank)
 {
-    int filter_len = FILTER_LENGTH;
-    int phases = 256; // Número de fases para interpolação suave
-    
-    ctx->filter_length = filter_len;
-    ctx->phases = phases;
-    
-    double cutoff = (ctx->ratio < 1.0) ? ctx->ratio : 1.0;
+    double window[FILTER_LENGTH];
+    double alpha = (FILTER_LENGTH - 1) / 2.0;
+    double beta_i0 = bessel_i0(KAISER_BETA);
+    double ratio = bank->dst_rate / bank->src_rate;
+    double cutoff = ratio < 1.0 ? ratio : 1.0;
     cutoff *= 0.95; // Margem de segurança para anti-aliasing
-    
+
+    for (int i = 0; i < FILTER_LENGTH; i++) {
+        double position = (i - alpha) / alpha;
+        double arg = KAISER_BETA * sqrt(1.0 - position * position);
+        window[i] = bessel_i0(arg) / beta_i0;
+    }
+
     // Gera filtro sinc com janela Kaiser para cada fase
-    for (int phase = 0; phase < phases; phase++) {
-        double phase_offset = (double)phase / phases;
+    for (int phase = 0; phase < FILTER_PHASES; phase++) {
+        double phase_offset = (double) phase / FILTER_PHASES;
         double sum = 0.0;
-        
-        for (int i = 0; i < filter_len; i++) {
-            double t = i - (filter_len - 1) / 2.0 + phase_offset;
+
+        for (int i = 0; i < FILTER_LENGTH; i++) {
+            double t = i - (FILTER_LENGTH - 1) / 2.0 + phase_offset;
             double h = sinc(2.0 * cutoff * t) * 2.0 * cutoff;
-            h *= kaiser_window(i, filter_len, KAISER_BETA);
-            ctx->filter_bank[phase * filter_len + i] = h;
+            h *= window[i];
+            bank->coefficients[phase * FILTER_LENGTH + i] = h;
             sum += h;
         }
-        
+
         // Normaliza para manter ganho unitário
         if (sum > 0.0) {
-            for (int i = 0; i < filter_len; i++) {
-                ctx->filter_bank[phase * filter_len + i] /= sum;
+            for (int i = 0; i < FILTER_LENGTH; i++) {
+                bank->coefficients[phase * FILTER_LENGTH + i] /= sum;
             }
         }
     }
+}
+
+static psampler_filter_bank *create_filter_bank(double src_rate, double dst_rate)
+{
+    psampler_filter_bank *bank = pemalloc(sizeof(*bank), 1);
+    bank->src_rate = src_rate;
+    bank->dst_rate = dst_rate;
+    bank->references = 1;
+    bank->cached = 0;
+    bank->last_used = 0;
+    bank->next = NULL;
+    generate_filter_bank(bank);
+    return bank;
+}
+
+/* The cache is process-persistent and bounded. Coefficients are immutable after
+ * publication. A reference prevents eviction while a streaming Resampler owns
+ * the bank; transient PcmBuffer contexts normally release it immediately. */
+static psampler_filter_bank *acquire_filter_bank(double src_rate, double dst_rate)
+{
+    psampler_filter_bank *bank;
+    psampler_filter_bank *created;
+
+    filter_cache_lock();
+    for (bank = filter_cache; bank != NULL; bank = bank->next) {
+        if (bank->src_rate == src_rate && bank->dst_rate == dst_rate) {
+            bank->references++;
+            bank->last_used = ++filter_cache_clock;
+            filter_cache_unlock();
+            return bank;
+        }
+    }
+    filter_cache_unlock();
+
+    /* Do the expensive trigonometry outside the cache lock. A concurrent
+     * creator is detected below and this private duplicate is discarded. */
+    created = create_filter_bank(src_rate, dst_rate);
+
+    filter_cache_lock();
+    for (bank = filter_cache; bank != NULL; bank = bank->next) {
+        if (bank->src_rate == src_rate && bank->dst_rate == dst_rate) {
+            bank->references++;
+            bank->last_used = ++filter_cache_clock;
+            filter_cache_unlock();
+            pefree(created, 1);
+            return bank;
+        }
+    }
+
+    if (filter_cache_size >= FILTER_CACHE_LIMIT) {
+        psampler_filter_bank **cursor = &filter_cache;
+        psampler_filter_bank **victim_link = NULL;
+        psampler_filter_bank *victim = NULL;
+        while (*cursor != NULL) {
+            if ((*cursor)->references == 0
+                && (victim == NULL || (*cursor)->last_used < victim->last_used)) {
+                victim = *cursor;
+                victim_link = cursor;
+            }
+            cursor = &(*cursor)->next;
+        }
+        if (victim != NULL) {
+            *victim_link = victim->next;
+            filter_cache_size--;
+            pefree(victim, 1);
+        }
+    }
+
+    if (filter_cache_size < FILTER_CACHE_LIMIT) {
+        created->cached = 1;
+        created->last_used = ++filter_cache_clock;
+        created->next = filter_cache;
+        filter_cache = created;
+        filter_cache_size++;
+    }
+    filter_cache_unlock();
+    return created;
+}
+
+static void release_filter_bank(psampler_filter_bank *bank)
+{
+    if (!bank->cached) {
+        pefree(bank, 1);
+        return;
+    }
+    filter_cache_lock();
+    ZEND_ASSERT(bank->references > 0);
+    bank->references--;
+    filter_cache_unlock();
+}
+
+static void filter_cache_init(void)
+{
+    filter_cache = NULL;
+    filter_cache_size = 0;
+    filter_cache_clock = 0;
+#ifdef ZTS
+    filter_cache_mutex = tsrm_mutex_alloc();
+#endif
+}
+
+static void filter_cache_shutdown(void)
+{
+    psampler_filter_bank *bank = filter_cache;
+    while (bank != NULL) {
+        psampler_filter_bank *next = bank->next;
+        pefree(bank, 1);
+        bank = next;
+    }
+    filter_cache = NULL;
+    filter_cache_size = 0;
+#ifdef ZTS
+    tsrm_mutex_free(filter_cache_mutex);
+    filter_cache_mutex = NULL;
+#endif
 }
 
 static psampler_context *create_context(double src_rate, double dst_rate)
@@ -320,16 +468,17 @@ static psampler_context *create_context(double src_rate, double dst_rate)
     ctx->buffer_size = MAX_BUFFER_SIZE;
     ctx->buffer_used = 0;
     memset(ctx->input_buffer, 0, ctx->buffer_size * sizeof(int16_t));
-    
+    ctx->filter_length = FILTER_LENGTH;
+    ctx->phases = FILTER_PHASES;
+    ctx->filter_bank = acquire_filter_bank(src_rate, dst_rate);
     ctx->next = NULL;
-    
-    generate_filter_bank(ctx);
-    
+
     return ctx;
 }
 
 static void free_context(psampler_context *ctx)
 {
+    release_filter_bank(ctx->filter_bank);
     efree(ctx);
 }
 
@@ -504,7 +653,7 @@ static zend_result resample_pcm16_block(psampler_context *ctx,
         int phase_idx = (int) (frac * ctx->phases);
         if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
         double sample = 0.0;
-        double *filter = &ctx->filter_bank[phase_idx * ctx->filter_length];
+        const double *filter = &ctx->filter_bank->coefficients[phase_idx * ctx->filter_length];
         for (int i = 0; i < ctx->filter_length; i++) {
             int src_idx = (int) base_idx - filter_half + i;
             if (src_idx >= 0 && src_idx < (int) ctx->buffer_used) {
@@ -1264,6 +1413,8 @@ static const zend_function_entry pcm_analyzer_methods[] = {
 PHP_MINIT_FUNCTION(psampler)
 {
     zend_class_entry ce;
+
+    filter_cache_init();
     
     // Inicializa handlers personalizados para Resampler
     memcpy(&psampler_handlers, &std_object_handlers, sizeof(zend_object_handlers));
@@ -1300,6 +1451,7 @@ PHP_MINIT_FUNCTION(psampler)
 PHP_MSHUTDOWN_FUNCTION(psampler)
 {
     psampler_pcm_registry_shutdown();
+    filter_cache_shutdown();
     return SUCCESS;
 }
 
@@ -1362,6 +1514,7 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "FILTER_LENGTH", "64");
     php_info_print_table_row(2, "KAISER_BETA", "8.6");
     php_info_print_table_row(2, "Fases polyphase", "256");
+    php_info_print_table_row(2, "Cache FIR", "LRU process-wide; 16 pares de taxas; ZTS-safe");
     php_info_print_table_row(2, "MAX_BUFFER_SIZE", "8192 amostras");
     php_info_print_table_row(2, "Pos-processamento",
         "remocao de DC offset (passa-alta 1 polo) + soft clipping [-32768, 32767]");

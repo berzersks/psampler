@@ -132,6 +132,7 @@ function pcmValidate(PcmBuffer $p, string $b, array $c): string {
 function pcmMain(array $argv): void {
     $c = pcmOptions($argv);
     pcmAssert(class_exists('PcmBuffer') && method_exists('PcmBuffer','reset'), 'recompile/carregue psampler com PcmBuffer::reset()');
+    pcmAssert(extension_loaded('swoole') && class_exists(Swoole\Coroutine\Channel::class), 'a extensão Swoole com coroutines é necessária');
     pcmAssert(function_exists('getrusage'), 'getrusage é necessário');
     $bank = []; $fixtureHash = hash_init('sha256');
     for ($i=0; $i<PCM_FIXTURE_SLOTS; $i++) {
@@ -139,54 +140,61 @@ function pcmMain(array $argv): void {
         hash_update($fixtureHash,$bank[$i]);
     }
     $fixtureHash = hash_final($fixtureHash);
-    $states = []; $fibers = []; $due = [];
+    $states = [];
     for ($i=0; $i<$c['calls']; $i++) {
         $state = new PcmCallState($c); $states[] = $state;
         foreach ($bank as $b) { pcmPipeline($state->pcm,$b,$c); } // Warm capacity/DSP paths before barrier.
-        $fiber = new Fiber(static function() use ($state,$bank,$c): void {
-            $start = Fiber::suspend(); // Creation and initial suspension are outside timing.
-            $tick = $c['ptime'] * 1000000;
-            for ($frame=0; $frame<$c['frames']; $frame++) {
-                if ($c['runtime'] === 'realtime') {
-                    $deadlineStart = $start + $frame * $tick;
-                    Fiber::suspend($deadlineStart);
-                }
-                pcmPipeline($state->pcm,$bank[$frame % PCM_FIXTURE_SLOTS],$c);
-                $state->frames++; $state->bytes += $state->pcm->size();
-                if ($c['runtime'] === 'realtime') {
-                    $late = hrtime(true) - $deadlineStart;
-                    $state->delay += $late; $state->maxDelay = max($state->maxDelay,$late);
-                    if ($late > $tick) { $state->misses++; }
-                }
-            }
-        });
-        $fiber->start(); $fibers[] = $fiber; $due[$i] = 0;
     }
-    if (function_exists('memory_reset_peak_usage')) { memory_reset_peak_usage(); }
-    $initial = memory_get_usage(); $initialReal = memory_get_usage(true);
-    [$u0,$s0] = pcmCpu(); $start = hrtime(true);
-    foreach ($fibers as $i=>$fiber) { $due[$i] = $fiber->resume($start); }
-    if ($c['runtime'] === 'realtime') {
-        $active = $c['calls'];
-        while ($active > 0) {
-            $earliest = PHP_INT_MAX;
-            foreach ($due as $i=>$when) {
-                if ($when === null) { continue; }
-                if ($when <= hrtime(true)) {
-                    $due[$i] = $fibers[$i]->resume();
-                    if ($fibers[$i]->isTerminated()) { $due[$i] = null; $active--; }
+    $initial = $initialReal = $peak = $peakReal = $final = $finalReal = 0;
+    $u0 = $s0 = $u1 = $s1 = $elapsed = 0.0;
+    Swoole\Coroutine\run(static function() use ($states,$bank,$c,
+        &$initial,&$initialReal,&$peak,&$peakReal,&$final,&$finalReal,
+        &$u0,&$s0,&$u1,&$s1,&$elapsed): void {
+        $ready = new Swoole\Coroutine\Channel($c['calls']);
+        $startGate = new Swoole\Coroutine\Channel($c['calls']);
+        $completed = new Swoole\Coroutine\Channel($c['calls']);
+        foreach ($states as $callId => $state) {
+            Swoole\Coroutine::create(static function() use ($callId,$state,$bank,$c,$ready,$startGate,$completed): void {
+                $ready->push(true);
+                $start = $startGate->pop();
+                try {
+                    $tick = $c['ptime'] * 1000000;
+                    for ($frame=0; $frame<$c['frames']; $frame++) {
+                        if ($c['runtime'] === 'realtime') {
+                            $deadlineStart = $start + $frame * $tick;
+                            while (($wait = $deadlineStart - hrtime(true)) > 0) {
+                                Swoole\Coroutine::sleep(max(0.001, $wait / 1e9));
+                            }
+                        }
+                        pcmPipeline($state->pcm,$bank[$frame % PCM_FIXTURE_SLOTS],$c);
+                        $state->frames++; $state->bytes += $state->pcm->size();
+                        if ($c['runtime'] === 'realtime') {
+                            $late = hrtime(true) - $deadlineStart;
+                            $state->delay += $late; $state->maxDelay = max($state->maxDelay,$late);
+                            if ($late > $tick) { $state->misses++; }
+                        }
+                    }
+                    $completed->push(['call_id'=>$callId, 'error'=>null]);
+                } catch (Throwable $error) {
+                    $completed->push(['call_id'=>$callId, 'error'=>$error]);
                 }
-                if ($due[$i] !== null) { $earliest = min($earliest,$due[$i]); }
-            }
-            if ($active > 0) {
-                $wait = $earliest - hrtime(true);
-                if ($wait > 0) { usleep((int)ceil($wait/1000)); }
+            });
+        }
+        for ($i=0; $i<$c['calls']; $i++) { $ready->pop(); }
+        if (function_exists('memory_reset_peak_usage')) { memory_reset_peak_usage(); }
+        $initial = memory_get_usage(); $initialReal = memory_get_usage(true);
+        [$u0,$s0] = pcmCpu(); $start = hrtime(true);
+        for ($i=0; $i<$c['calls']; $i++) { $startGate->push($start); }
+        for ($i=0; $i<$c['calls']; $i++) {
+            $result = $completed->pop();
+            if ($result['error'] instanceof Throwable) {
+                throw new RuntimeException("coroutine {$result['call_id']} falhou", 0, $result['error']);
             }
         }
-    }
-    $elapsed = (hrtime(true)-$start)/1e9; [$u1,$s1] = pcmCpu();
-    $final = memory_get_usage(); $peak = memory_get_peak_usage();
-    $finalReal = memory_get_usage(true); $peakReal = memory_get_peak_usage(true);
+        $elapsed = (hrtime(true)-$start)/1e9; [$u1,$s1] = pcmCpu();
+        $final = memory_get_usage(); $peak = memory_get_peak_usage();
+        $finalReal = memory_get_usage(true); $peakReal = memory_get_peak_usage(true);
+    });
     // Everything below, including byte export, reference DSP and hashes, is untimed.
     $frames=0; $bytes=0; $misses=0; $delay=0; $maxDelay=0;
     foreach ($states as $state) {
@@ -224,7 +232,8 @@ function pcmMain(array $argv): void {
     $expectedBytes = $c['calls'] * (intdiv($c['frames'],PCM_FIXTURE_SLOTS)*$cycleBytes+$tailBytes);
     pcmAssert($frames === $c['calls']*$c['frames'] && $bytes === $expectedBytes, 'contagem de frames/bytes inválida');
     $audio = $frames * $c['samples'] / $c['source-rate']; $cpu = $u1-$u0+$s1-$s0;
-    $report = ['language'=>'PHP','implementation'=>'psampler PcmBuffer / native sinc-Kaiser FIR',
+    $report = ['language'=>'PHP','implementation'=>'psampler PcmBuffer / cached native sinc-Kaiser FIR',
+        'scheduler'=>'Swoole Coroutine',
         'runtime_mode'=>$c['runtime'],'calls'=>$c['calls'],'frames_per_call'=>$c['frames'],
         'total_frames'=>$c['calls']*$c['frames'],'ptime_ms'=>$c['ptime'],
         'source_rate'=>$c['source-rate'],'source_channels'=>$c['source-channels'],'source_frame_bytes'=>$c['frame-bytes'],

@@ -7,10 +7,10 @@ baseline histórico de string/ByteBuffer/Go best. Este benchmark não os utiliza
 
 ## Build e execução
 
-PHP CLI 8.1+ com a extensão psampler deste checkout, incluindo `PcmBuffer::reset()`.
-O scheduler usa coroutines `Fiber` do PHP, sem dependência de Swoole. Go usa
-somente a biblioteca padrão, sem cgo ou SpeexDSP; o relatório CPU usa getrusage
-no Linux. Os contadores/tamanhos pressupõem um processo de 64 bits.
+PHP CLI 8.1+ com as extensões psampler deste checkout e Swoole. O scheduler usa
+`Swoole\Coroutine`, canais e uma barreira comum de início. Go usa somente a
+biblioteca padrão, sem cgo ou SpeexDSP; o relatório CPU usa getrusage no Linux.
+Os contadores/tamanhos pressupõem um processo de 64 bits.
 
 Para uma extensão dinâmica, com `phpize`, `php-config` e `php` da mesma versão:
 
@@ -50,10 +50,10 @@ php pcm_benchmark.php --runtime=throughput --calls=50 --frames=100000
 ./pcm_benchmark_go --runtime=throughput --calls=50 --frames=100000
 ```
 
-O PHP/C atual gera novamente os filtros a cada frame. Portanto volumes altos
-podem levar vários minutos ou horas no PHP. Os exemplos com 100000 frames não
-são uma promessa de duração curta. `--duration=10` é somente uma conveniência
-para calcular `ceil(10 * 1000 / ptime)` frames **por chamada**; `--frames`
+O PHP/C conserva um cache process-wide dos bancos FIR por par de taxas. Assim,
+o custo trigonométrico da construção acontece no primeiro uso e não em cada
+frame. `--duration=10` é somente uma conveniência para calcular
+`ceil(10 * 1000 / ptime)` frames **por chamada**; `--frames`
 explícito prevalece, independentemente da ordem dos argumentos. A duração
 configurada não determina tempo de wall em throughput. Ambos imprimem
 `frames_per_call`, `total_frames` e `frames_processed`.
@@ -131,10 +131,13 @@ preservam todo o estado anterior. Exige objeto construído e rejeita mutação
 durante `invoke()`, como `clear()`. Permite reutilizar um buffer depois de
 qualquer transformação sem chamar novamente o construtor.
 
-Isso não elimina as alocações já feitas por `resample()` em C: o adapter atual
-cria contextos temporários e nova saída nativa, libera contextos e substitui o
-storage anterior. O benchmark mantém esse comportamento real. `reset()`
-conserva a capacidade deixada pela última operação; um append maior pode crescer.
+O adapter de `resample()` ainda cria o pequeno estado transitório e uma nova
+saída nativa, libera o estado e substitui o storage anterior. Os 16.384
+coeficientes (`64 taps * 256 fases`) ficam fora desse contexto em um cache LRU
+process-wide, limitado a 16 pares de taxas. Entradas em uso têm referência e
+não podem ser removidas; no build ZTS, lookup, referência e eviction usam mutex.
+`reset()` conserva a capacidade deixada pela última operação; um append maior
+pode crescer.
 
 Go usa `PCMBuffer` com `[]byte` PCM16LE contíguo, metadados, size/capacity em
 bytes, downmix in-place, dois backing arrays alternados para entrada/saída e
@@ -155,13 +158,13 @@ da cauda direita, seguindo o comportamento de `psampler.c`.
 
 Diferenças a considerar:
 
-* PHP/C gera o banco de filtros e aloca contexto/saída por resampling. Go conserva
-  os coeficientes para o par de taxas e reutiliza storage. São custos reais das
-  duas implementações; o Go não emula Zend nem alocações evitáveis do C.
-* A geração Go pré-calcula a janela Kaiser uma vez por banco. Bibliotecas
+* PHP/C e Go conservam os coeficientes para o par de taxas. PHP/C ainda aloca
+  contexto/saída por resampling; Go reutiliza storage. São custos reais das duas
+  implementações; o Go não emula Zend nem alocações evitáveis do C.
+* A geração em ambas as implementações pré-calcula a janela Kaiser uma vez por banco. Bibliotecas
   matemáticas, avaliação em ponto flutuante e arredondamento podem divergir
   entre builds. Não se exige hash igual do resampling entre linguagens.
-* PHP executa DSP em um thread com Fibers cooperativas; Go permite paralelismo
+* PHP executa DSP em um thread com coroutines Swoole cooperativas; Go permite paralelismo
   de goroutines conforme `GOMAXPROCS`, que aparece no output. Registre essa
   configuração ao comparar wall/CPU. `GOMAXPROCS=1 ./pcm_benchmark_go ...` permite
   uma comparação adicional com um único core, preservando o mesmo workload.
@@ -177,11 +180,11 @@ sem estado DSP contínuo entre frames.
 
 ## Medição e validação
 
-Fixture, objetos, Fibers/goroutines, timers, warmup de oito fixtures por chamada
+Fixture, objetos, coroutines/goroutines, timers, warmup de oito fixtures por chamada
 e chegada à barreira precedem a janela. A liberação da barreira, processamento,
 contadores mínimos e sincronização de término pertencem à janela. Em throughput
 não há pacing nem sleep. Em realtime o primeiro frame vence em t=0, os seguintes
-em `frame * ptime`, usando hrtime/Fiber/usleep no PHP e timers reutilizados no Go.
+em `frame * ptime`, usando hrtime e timers do Swoole no PHP e timers reutilizados no Go.
 
 `deadline_misses` conta conclusões após `due + ptime`. `max_delay_ms` e
 `average_delay_ms` medem conclusão menos `due`, incluindo tempo de DSP e atraso
@@ -305,7 +308,8 @@ PHP:
 
 ```text
 language: PHP
-implementation: psampler PcmBuffer / native sinc-Kaiser FIR
+implementation: psampler PcmBuffer / cached native sinc-Kaiser FIR
+scheduler: Swoole Coroutine
 runtime_mode: throughput
 calls: 2
 frames_per_call: 1000
@@ -316,20 +320,20 @@ source_channels: 2
 source_frame_bytes: 3528
 target_rate: 8000
 target_channels: 1
-elapsed_seconds: 3.609923
+elapsed_seconds: 0.032743
 frames_processed: 2000
-frames_per_second: 554.028451
+frames_per_second: 61081.729951
 input_bytes: 7056000
 output_bytes: 616000
 audio_seconds_processed: 40
-audio_seconds_per_wall_second: 11.080569
-cpu_user_seconds: 3.607378
+audio_seconds_per_wall_second: 1221.634599
+cpu_user_seconds: 0.032703
 cpu_system_seconds: 0.000000
-cpu_total_seconds: 3.607378
-average_cpu_percent: 99.929502
-memory_initial_bytes: 651072
-memory_peak_bytes: 806720
-memory_final_bytes: 616752
+cpu_total_seconds: 0.032703
+average_cpu_percent: 99.877791
+memory_initial_bytes: 2364264
+memory_peak_bytes: 2388840
+memory_final_bytes: 2345968
 validation: ok
 ```
 

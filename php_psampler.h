@@ -184,8 +184,9 @@ extern zend_module_entry psampler_module_entry;
  *   0.4.0 - Adicionada a classe ByteBuffer com armazenamento circular.
  *   0.5.0 - Adicionada a classe PCMAnalyzer para features acústicas PCM16.
  *   0.6.0 - Adicionada evidencia nativa de ring ao scan de PCMAnalyzer.
+ *   0.6.1 - Cache LRU process-wide dos bancos FIR sinc-Kaiser.
  */
-#define PHP_PSAMPLER_VERSION "0.6.0"
+#define PHP_PSAMPLER_VERSION "0.6.1"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)

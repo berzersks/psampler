@@ -2,7 +2,7 @@
 
 Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmpeg.
 
-Versão atual: **0.6.0**.
+Versão atual: **0.6.1**.
 
 ## PCM nativo: PcmBuffer e stereoToMono
 
