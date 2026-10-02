@@ -15,7 +15,7 @@ HELP
 fail() { printf 'ERRO: %s\n' "$*" >&2; exit 1; }
 language=php runtime_mode=throughput calls=50 frames=10000 ptime=20
 source_rate=44100 source_channels=2 target_rate=8000 target_channels=1
-frequency=999 callgraph=dwarf php_bin=php extension='' go_bin=./pcm_benchmark_go
+frequency=999 callgraph=dwarf php_bin=./php extension='' go_bin=./pcm_benchmark_go
 data=perf-pcm.data flat=perf-pcm-flat.txt dry_run=false
 for arg in "$@"; do
     case "$arg" in
