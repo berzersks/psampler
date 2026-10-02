@@ -74,6 +74,14 @@ def check_report(report, source, channels, frames, mode):
 
 
 def test_perf_parser():
+    go_dry_run = subprocess.run(
+        ['bash', str(ROOT/'perf_pcm_benchmark.sh'), '--language=go', '--calls=1',
+         '--frames=1', '--dry-run'], text=True, capture_output=True, check=True)
+    assert ' -- env GOMAXPROCS=1 ./pcm_benchmark_go ' in go_dry_run.stdout
+    php_dry_run = subprocess.run(
+        ['bash', str(ROOT/'perf_pcm_benchmark.sh'), '--language=php', '--calls=1',
+         '--frames=1', '--dry-run'], text=True, capture_output=True, check=True)
+    assert 'GOMAXPROCS' not in php_dry_run.stdout
     # Execute the actual script against a fake perf to exercise report parsing.
     with tempfile.TemporaryDirectory() as d:
         perf = pathlib.Path(d)/'perf'

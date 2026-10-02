@@ -242,6 +242,8 @@ mínima das chamadas de observação.
 Defaults: throughput, 50 chamadas, 10000 frames/chamada, frequência 999,
 callgraph dwarf, `perf-pcm.data` e `perf-pcm-flat.txt`. Dependências do script:
 bash, perf e python3. Argumentos de taxas/canais/ptime também são aceitos.
+O comando Go é executado com `GOMAXPROCS=1` para medir um único core; essa
+configuração também aparece no comando mostrado por `--dry-run`.
 A execução seguinte sobrescreve os mesmos destinos; use `--data` e `--flat`
 para conservar relatórios PHP/Go separadamente.
 

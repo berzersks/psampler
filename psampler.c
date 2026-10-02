@@ -654,11 +654,22 @@ static zend_result resample_pcm16_block(psampler_context *ctx,
         if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
         double sample = 0.0;
         const double *filter = &ctx->filter_bank->coefficients[phase_idx * ctx->filter_length];
-        for (int i = 0; i < ctx->filter_length; i++) {
-            int src_idx = (int) base_idx - filter_half + i;
-            if (src_idx >= 0 && src_idx < (int) ctx->buffer_used) {
-                sample += ctx->input_buffer[src_idx] * filter[i];
-            }
+        int src_start = (int) base_idx - filter_half;
+        int first_tap = src_start < 0 ? -src_start : 0;
+        int last_tap = ctx->filter_length;
+        if (src_start + last_tap > (int) ctx->buffer_used) {
+            last_tap = (int) ctx->buffer_used - src_start;
+        }
+        /* Keep the sum order unchanged while amortizing the loop branch. */
+        int i = first_tap;
+        for (; i + 3 < last_tap; i += 4) {
+            sample += ctx->input_buffer[src_start + i] * filter[i];
+            sample += ctx->input_buffer[src_start + i + 1] * filter[i + 1];
+            sample += ctx->input_buffer[src_start + i + 2] * filter[i + 2];
+            sample += ctx->input_buffer[src_start + i + 3] * filter[i + 3];
+        }
+        for (; i < last_tap; i++) {
+            sample += ctx->input_buffer[src_start + i] * filter[i];
         }
         ctx->last_dc = 0.9995 * ctx->last_dc + 0.0005 * sample;
         sample -= ctx->last_dc;

@@ -14,7 +14,7 @@ HELP
 }
 fail() { printf 'ERRO: %s\n' "$*" >&2; exit 1; }
 language=php runtime_mode=throughput calls=50 frames=10000 ptime=20
-source_rate=44100 source_channels=2 target_rate=8000 target_channels=1
+source_rate=48000 source_channels=2 target_rate=8000 target_channels=1
 frequency=999 callgraph=dwarf php_bin=./php extension='' go_bin=./pcm_benchmark_go
 data=perf-pcm.data flat=perf-pcm-flat.txt dry_run=false
 for arg in "$@"; do
@@ -70,7 +70,7 @@ if [[ $language == php ]]; then
     [[ -z $extension ]] || command+=(-d "extension=$extension")
     command+=(./pcm_benchmark.php)
 else
-    command=("$go_bin")
+    command=(env GOMAXPROCS=1 "$go_bin")
 fi
 command+=("--runtime=$runtime_mode" "--calls=$calls" "--frames=$frames" "--ptime=$ptime"
     "--source-rate=$source_rate" "--source-channels=$source_channels" "--target-rate=$target_rate" "--target-channels=$target_channels")

@@ -136,3 +136,4 @@ perf-flat.txt
 /bench/fixtures/
 /bench/shadow-report.json
 /bench/__pycache__/
+/perf-pcm-php.data
