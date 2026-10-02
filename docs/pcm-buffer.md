@@ -18,6 +18,7 @@ final class PcmBuffer {
     public function sampleRate(): int;
     public function channels(): int;
     public function clear(): void;
+    public function reset(int $sampleRate, int $channels): void;
     public function toString(): string;
     public function toMono(): PcmBuffer;
     public function toStereo(): PcmBuffer;
@@ -42,6 +43,10 @@ inteiro PHP e respeitam também o limite de alocação de `zend_string`.
 
 O objeto vazio começa sem alocação (`capacity() == 0`). O primeiro append
 não vazio reserva pelo menos 4096 bytes, com crescimento geométrico.
+`reset(sampleRate, channels)` zera o tamanho e atualiza taxa/canais, mantendo
+o storage e a capacidade atuais, sem alocar, liberar ou copiar PCM. Valida os
+dois argumentos antes de alterar o estado e segue a proteção contra mutações
+durante `invoke()`. É útil para reutilizar um buffer após transformações.
 `clear()` mantém capacidade e metadados; uma chamada explícita repetida ao
 construtor limpa o conteúdo e atualiza os metadados, mantendo capacidade.
 Argumentos inválidos deixam o estado anterior intacto. `toString()` produz

@@ -128,6 +128,10 @@ perf-flat.txt
 /mono_to_stereocpp
 /voice_benchmark_go
 /voice_benchmark_go_debug
+/pcm_benchmark_go
+/perf-pcm.data
+/perf-pcm.data.old
+/perf-pcm-flat.txt
 
 /bench/fixtures/
 /bench/shadow-report.json

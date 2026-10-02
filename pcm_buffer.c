@@ -267,6 +267,32 @@ PHP_METHOD(PcmBuffer, append)
     RETURN_NULL();
 }
 
+PHP_METHOD(PcmBuffer, reset)
+{
+    zend_long rate, channels;
+    psampler_pcm_buffer *pcm;
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_LONG(rate)
+        Z_PARAM_LONG(channels)
+    ZEND_PARSE_PARAMETERS_END();
+    if (!pcm_valid_rate(rate, 1)) {
+        RETURN_THROWS();
+    }
+    if (channels != 1 && channels != 2) {
+        zend_argument_value_error(2, "must be 1 (mono) or 2 (stereo)");
+        RETURN_THROWS();
+    }
+    pcm = PCM_BUFFER_OBJ(getThis());
+    if (!pcm_ready(pcm, 1)) {
+        RETURN_THROWS();
+    }
+    /* No allocation, release, or PCM copy: storage remains owned by this object. */
+    pcm->size = 0;
+    pcm->sample_rate = (uint32_t) rate;
+    pcm->channels = (uint16_t) channels;
+    RETURN_NULL();
+}
+
 #define PCM_INT_METHOD(method, field) \
 PHP_METHOD(PcmBuffer, method) \
 { \
@@ -439,6 +465,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_pcm_buffer_append, 0, 1, IS_VOID
     ZEND_ARG_TYPE_INFO(0, pcm, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_pcm_buffer_reset, 0, 2, IS_VOID, 0)
+    ZEND_ARG_TYPE_INFO(0, sampleRate, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(0, channels, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_pcm_buffer_int, 0, 0, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
@@ -472,6 +503,7 @@ static const zend_function_entry pcm_buffer_methods[] = {
     PHP_ME(PcmBuffer, sampleRate, arginfo_pcm_buffer_int, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, channels, arginfo_pcm_buffer_int, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, clear, arginfo_pcm_buffer_clear, ZEND_ACC_PUBLIC)
+    PHP_ME(PcmBuffer, reset, arginfo_pcm_buffer_reset, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, toString, arginfo_pcm_buffer_string, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, toMono, arginfo_pcm_buffer_transform, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, toStereo, arginfo_pcm_buffer_transform, ZEND_ACC_PUBLIC)
