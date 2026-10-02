@@ -92,6 +92,11 @@ def test_perf_parser():
             p = subprocess.run(['bash',str(ROOT/'perf_pcm_benchmark.sh'),'--language=go','--calls=3','--frames=17',
                                 '--data='+d+'/perf.data','--flat='+d+'/flat.txt'], text=True,capture_output=True,check=True,env=env)
             assert message in p.stdout and 'frames totais: 51' in p.stdout
+        perf.write_text('#!/bin/sh\nif [ "$1" = report ]; then printf "# Samples: 6K of event cpu_core/cycles/\\n# Samples: 9 of event cpu_atom/cycles/\\n"; fi\n')
+        p = subprocess.run(['bash',str(ROOT/'perf_pcm_benchmark.sh'),'--language=c','--calls=1','--frames=1',
+                            '--data='+d+'/perf.data','--flat='+d+'/flat.txt'], text=True,capture_output=True,check=True,env=env)
+        assert 'amostragem adequada' in p.stdout and 'WARNING:' not in p.stdout
+
 
 def test_php_hot_path():
     source = (ROOT/'pcm_benchmark.php').read_text()

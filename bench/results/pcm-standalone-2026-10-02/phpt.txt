@@ -1,0 +1,36 @@
+
+=====================================================================
+PHP         : /home/lotus/projetos/psampler/php_pcm_shared 
+PHP_SAPI    : cli
+PHP_VERSION : 8.5.10
+ZEND_VERSION: 4.5.10
+PHP_OS      : Linux - Linux lotus-Nitro-AN515-57 7.0.0-34-generic #34~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 15:38:29 UTC 2 x86_64
+INI actual  : /home/lotus/projetos/psampler
+More .INIs  :   
+CWD         : /home/lotus/projetos/psampler
+Extra dirs  : 
+VALGRIND    : Not used
+=====================================================================
+Running selected tests.
+TEST 1/13 [tests/byte_buffer.phpt]PASS ByteBuffer supports binary data, wraparound, growth, and bounds checks [tests/byte_buffer.phpt] 
+TEST 2/13 [tests/byte_buffer_stress.phpt]PASS ByteBuffer preserves FIFO order through repeated wraparound and growth [tests/byte_buffer_stress.phpt] 
+TEST 3/13 [tests/legacy_api.phpt]PASS Legacy Resampler LPCM and stereo helpers remain available [tests/legacy_api.phpt] 
+TEST 4/13 [tests/pcm_analyzer.phpt]PASS PCMAnalyzer validates PCM16 and isolates consecutive analyses [tests/pcm_analyzer.phpt] 
+TEST 5/13 [tests/pcm_buffer.phpt]PASS PcmBuffer owns contiguous binary PCM with metadata, growth, clear and destruction [tests/pcm_buffer.phpt] 
+TEST 6/13 [tests/pcm_buffer_errors.phpt]PASS PcmBuffer rejects invalid rates, channels, incomplete frames and incorrect parameter types [tests/pcm_buffer_errors.phpt] 
+TEST 7/13 [tests/pcm_buffer_invoke.phpt]PASS PcmBuffer dispatch rejects unavailable operations and validates invoke argument parsing [tests/pcm_buffer_invoke.phpt] 
+TEST 8/13 [tests/pcm_buffer_resample.phpt]PASS PcmBuffer resampling reuses the legacy DSP for mono and independent stereo channels [tests/pcm_buffer_resample.phpt] 
+TEST 9/13 [tests/pcm_buffer_reset.phpt]PASS PcmBuffer reset restores metadata, retains storage, validates atomically and returns void [tests/pcm_buffer_reset.phpt] 
+TEST 10/13 [tests/pcm_buffer_transforms.phpt]PASS PcmBuffer channel transforms mutate and return the same object using shared PCM16LE kernels [tests/pcm_buffer_transforms.phpt] 
+TEST 11/13 [tests/resampler_filter_cache.phpt]PASS Resampler shares bounded FIR banks safely across more live rate pairs than the cache limit [tests/resampler_filter_cache.phpt] 
+TEST 12/13 [tests/ring_evidence.phpt]PASS PCMAnalyzer returns ring evidence and resets it between calls [tests/ring_evidence.phpt] 
+TEST 13/13 [tests/stereo_to_mono.phpt]PASS stereoToMono averages signed PCM16LE without overflow and truncates toward zero [tests/stereo_to_mono.phpt] 
+=====================================================================
+Number of tests :    13                13
+Tests skipped   :     0 (  0.0%) --------
+Tests warned    :     0 (  0.0%) (  0.0%)
+Tests failed    :     0 (  0.0%) (  0.0%)
+Tests passed    :    13 (100.0%) (100.0%)
+---------------------------------------------------------------------
+Time taken      : 0.340 seconds
+=====================================================================

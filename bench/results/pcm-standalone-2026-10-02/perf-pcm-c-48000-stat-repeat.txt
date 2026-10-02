@@ -1,0 +1,13 @@
+# started on Fri Oct  2 04:25:23 2026
+
+
+ Performance counter stats for 'taskset -c 2 ./pcm_benchmark_c --runtime=throughput --calls=50 --frames=10000 --ptime=20 --source-rate=48000 --source-channels=2 --target-rate=8000 --target-channels=1' (5 runs):
+
+           5398.92 msec task-clock                                                              ( +-  0.12% )
+       24339908813      cpu_core/cycles/                                                        ( +-  0.08% )
+       49555405499      cpu_core/instructions/                                                  ( +-  0.00% )
+        7344440350      cpu_core/branches/                                                      ( +-  0.00% )
+          16989952      cpu_core/branch-misses/                                                 ( +-  0.79% )
+
+       5.401604507 +- 0.006224652 seconds time elapsed  ( +-  0.12% )
+

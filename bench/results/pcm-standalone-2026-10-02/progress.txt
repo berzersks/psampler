@@ -1,0 +1,52 @@
+8000 {'PHP': 0.213446, 'C': 0.107472, 'Go': 0.123429}
+16000 {'PHP': 4.405133, 'C': 4.404048, 'Go': 3.94482}
+24000 {'PHP': 4.728934, 'C': 4.748715, 'Go': 4.275223}
+32000 {'PHP': 4.99204, 'C': 4.989844, 'Go': 4.637572}
+44100 {'PHP': 5.576013, 'C': 5.572482, 'Go': 5.012335}
+48000 {'PHP': 5.393034, 'C': 5.367513, 'Go': 5.167034}
+96000 {'PHP': 6.39319, 'C': 6.339956, 'Go': 6.2548}
+Warning:
+Kernel address maps (/proc/{kallsyms,modules}) were restricted.
+
+Check /proc/sys/kernel/kptr_restrict before running 'perf record'.
+
+As no suitable kallsyms nor vmlinux was found, kernel samples
+can't be resolved.
+
+Samples in kernel modules can't be resolved as well.
+
+perf-pcm-c-44100: record/report/stat done
+Warning:
+Kernel address maps (/proc/{kallsyms,modules}) were restricted.
+
+Check /proc/sys/kernel/kptr_restrict before running 'perf record'.
+
+As no suitable kallsyms nor vmlinux was found, kernel samples
+can't be resolved.
+
+Samples in kernel modules can't be resolved as well.
+
+perf-pcm-php-44100: record/report/stat done
+Warning:
+Kernel address maps (/proc/{kallsyms,modules}) were restricted.
+
+Check /proc/sys/kernel/kptr_restrict before running 'perf record'.
+
+As no suitable kallsyms nor vmlinux was found, kernel samples
+can't be resolved.
+
+Samples in kernel modules can't be resolved as well.
+
+perf-pcm-c-48000: record/report/stat done
+Warning:
+Kernel address maps (/proc/{kallsyms,modules}) were restricted.
+
+Check /proc/sys/kernel/kptr_restrict before running 'perf record'.
+
+As no suitable kallsyms nor vmlinux was found, kernel samples
+can't be resolved.
+
+Samples in kernel modules can't be resolved as well.
+
+perf-pcm-php-48000: record/report/stat done
+allocator controls done

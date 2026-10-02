@@ -1,0 +1,4 @@
+UNCHANGED after host-service identifier substitution: typedef struct _psampler_filter_bank ; SHA256=6a45658484db0a12a251e5dbf102a03d1be572943dddabb6daa18ef6c9ff8bed
+UNCHANGED after host-service identifier substitution: // Função Bessel I0 ; SHA256=ebd4b68dae052f9843ddde3e30a3dea0525b75ff7e09912c4a2bbc1dfe5ff569
+UNCHANGED after host-service identifier substitution: /* Shared streaming DSP. ; SHA256=7c4ed491c05c0844d8e7cc04102eaa8f4028dae0fa3df1f716a76644b615be02
+UNCHANGED after host-service identifier substitution: zend_result psampler_resample_pcm16( ; SHA256=cb501936d39f941e26d3cf16b0d23029af6c203c1cae50b6e26c3beebd503db8

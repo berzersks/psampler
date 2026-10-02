@@ -1,0 +1,13 @@
+# started on Fri Oct  2 04:23:42 2026
+
+
+ Performance counter stats for 'taskset -c 2 ./php_pcm_shared pcm_benchmark.php --runtime=throughput --calls=50 --ptime=20 --source-channels=2 --target-rate=8000 --target-channels=1 --frames=10000 --source-rate=48000' (5 runs):
+
+           5787.76 msec task-clock                                                              ( +-  6.46% )
+       26106459033      cpu_core/cycles/                                                        ( +-  6.43% )  (100.00%)
+       50311900573      cpu_core/instructions/                                                  ( +-  0.01% )  (100.00%)
+        7566408224      cpu_core/branches/                                                      ( +-  0.01% )  (100.00%)
+          21322085      cpu_core/branch-misses/                                                 ( +-  0.60% )  (100.00%)
+
+       5.790987057 +- 0.374460160 seconds time elapsed  ( +-  6.47% )
+

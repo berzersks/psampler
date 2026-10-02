@@ -137,3 +137,11 @@ perf-flat.txt
 /bench/shadow-report.json
 /bench/__pycache__/
 /perf-pcm-php.data
+
+# Standalone PCM benchmark build/profile artifacts (text reports stay versioned).
+/pcm_benchmark_c
+/php_pcm_shared
+/perf-pcm-c*.data*
+/perf-pcm-c-flat.txt
+/bench/results/pcm-standalone-*/*.data*
+/tests/__pycache__/

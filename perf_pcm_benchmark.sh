@@ -3,11 +3,12 @@ set -Eeuo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 usage() {
     cat <<'HELP'
-Uso: ./perf_pcm_benchmark.sh --language=php|go [opções]
+Uso: ./perf_pcm_benchmark.sh --language=php|go|c [opções]
 Defaults: --runtime=throughput --calls=50 --frames=10000 --ptime=20
-  --source-rate=44100 --source-channels=2 --target-rate=8000 --target-channels=1
+  --source-rate=48000 --source-channels=2 --target-rate=8000 --target-channels=1
   --frequency=999 --callgraph=dwarf
 Opções: --php-bin=php --extension=/path/psampler.so --go-bin=./pcm_benchmark_go
+  --c-bin=./pcm_benchmark_c --event=cpu_core/cycles/
   --data=perf-pcm.data --flat=perf-pcm-flat.txt --dry-run
 Compile os programas antes. --frames é por chamada; não há limite artificial.
 HELP
@@ -16,6 +17,7 @@ fail() { printf 'ERRO: %s\n' "$*" >&2; exit 1; }
 language=php runtime_mode=throughput calls=50 frames=10000 ptime=20
 source_rate=48000 source_channels=2 target_rate=8000 target_channels=1
 frequency=999 callgraph=dwarf php_bin=./php extension='' go_bin=./pcm_benchmark_go
+c_bin=./pcm_benchmark_c event=''
 data=perf-pcm.data flat=perf-pcm-flat.txt dry_run=false
 for arg in "$@"; do
     case "$arg" in
@@ -35,12 +37,14 @@ for arg in "$@"; do
         --php-bin=*) php_bin=${arg#*=};;
         --extension=*) extension=${arg#*=};;
         --go-bin=*) go_bin=${arg#*=};;
+        --c-bin=*) c_bin=${arg#*=};;
+        --event=*) event=${arg#*=};;
         --data=*) data=${arg#*=};;
         --flat=*) flat=${arg#*=};;
         *) fail "opção desconhecida: $arg";;
     esac
 done
-[[ $language == php || $language == go ]] || fail 'language deve ser php ou go'
+[[ $language == php || $language == go || $language == c ]] || fail 'language deve ser php, go ou c'
 [[ $runtime_mode == throughput || $runtime_mode == realtime ]] || fail 'runtime inválido'
 [[ $callgraph == dwarf || $callgraph == fp || $callgraph == lbr ]] || fail 'callgraph inválido'
 for key in calls frames ptime source_rate source_channels target_rate target_channels frequency; do
@@ -69,17 +73,22 @@ if [[ $language == php ]]; then
     command=("$php_bin")
     [[ -z $extension ]] || command+=(-d "extension=$extension")
     command+=(./pcm_benchmark.php)
-else
+elif [[ $language == go ]]; then
     command=(env GOMAXPROCS=1 "$go_bin")
+else
+    [[ $runtime_mode == throughput ]] || fail 'C suporta somente throughput'
+    command=("$c_bin")
 fi
 command+=("--runtime=$runtime_mode" "--calls=$calls" "--frames=$frames" "--ptime=$ptime"
     "--source-rate=$source_rate" "--source-channels=$source_channels" "--target-rate=$target_rate" "--target-channels=$target_channels")
-record=(perf record --freq "$frequency" --call-graph "$callgraph" --no-buildid-mmap --output "$data" -- "${command[@]}")
+events=()
+[[ -z $event ]] || events=(-e "$event")
+record=(perf record "${events[@]}" --freq "$frequency" --call-graph "$callgraph" --no-buildid-mmap --output "$data" -- "${command[@]}")
 printf 'comando completo: '; printf '%q ' "${record[@]}"; printf '\n'
 [[ $dry_run == false ]] || exit 0
 command -v perf >/dev/null || fail 'perf não encontrado'
 "${record[@]}"
-LC_ALL=C perf report --input "$data" --stdio --no-children --percent-limit 0 --sort comm,dso,symbol > "$flat"
+LC_ALL=C perf report --input "$data" --stdio --no-children --call-graph none --percent-limit 0 --sort comm,dso,symbol > "$flat"
 python3 - "$flat" <<'PY'
 import re,sys
 text=open(sys.argv[1]).read()
@@ -93,9 +102,9 @@ for value,suffix in re.findall(r'Samples:\s*([\d.,]+)\s*([KMG]?)',text,re.I):
         count=int(value.replace(',','').replace('.',''))
     counts.append(round(count))
 if counts:
-    # Use the least sampled event so a second event does not hide a sparse profile.
-    n=min(counts)
-    print(f'Samples (menor evento): {n}')
+    # Hybrid PMUs may have sparse samples on an unused CPU class.
+    n=max(counts)
+    print(f'Samples por evento: {counts}; evento dominante: {n}')
     if n<1000:
         print('WARNING: perfil possui poucas amostras; percentuais de hotspots não são confiáveis.\nAumente --frames.')
     elif n>=5000:

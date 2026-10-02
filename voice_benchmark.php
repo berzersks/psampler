@@ -402,7 +402,7 @@ Swoole\Coroutine\run(function () use (
     $completed = new Swoole\Coroutine\Channel($calls);
 
     for ($callId = 0; $callId < $calls; $callId++) {
-        Swoole\Coroutine::create(function () use (
+        go(function () use (
             $callId,
             $mode,
             $runtimeMode,

@@ -1,0 +1,9 @@
+A throughput: fixture/downmix/counters/metadata/duration OK
+A realtime: fixture/downmix/counters/metadata/duration OK
+B throughput: fixture/downmix/counters/metadata/duration OK
+B realtime: fixture/downmix/counters/metadata/duration OK
+C throughput: fixture/downmix/counters/metadata/duration OK
+C realtime: fixture/downmix/counters/metadata/duration OK
+D throughput: fixture/downmix/counters/metadata/duration OK
+D realtime: fixture/downmix/counters/metadata/duration OK
+argument validation, duration precedence, perf sample warnings and PHP hot path: OK

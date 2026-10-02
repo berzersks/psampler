@@ -1,0 +1,8 @@
+8000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+16000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+24000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+32000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+44100: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+48000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+96000: all 8 output slots, PHP original/shared/C/Go, Python fixture/downmix OK
+mono/stereo, upsampling, >8192 samples, empty output, CLI errors OK

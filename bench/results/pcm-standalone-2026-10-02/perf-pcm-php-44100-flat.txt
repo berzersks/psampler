@@ -1,0 +1,121 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 16K of event 'cpu_core/cycles/'
+# Event count (approx.): 75444041352
+#
+# Overhead       Samples  Command         Shared Object         Symbol                                               IPC   [IPC Coverage]
+# ........  ............  ..............  ....................  ...................................................  ....................
+#
+    84.11%         14095  php_pcm_shared  php_pcm_shared        [.] resample_pcm16_block                             -      -            
+    10.88%          1824  php_pcm_shared  php_pcm_shared        [.] psampler_pcm16_stereo_to_mono                    -      -            
+     0.64%           107  php_pcm_shared  php_pcm_shared        [.] zend_hash_find_known_hash                        -      -            
+     0.63%           106  php_pcm_shared  php_pcm_shared        [.] create_context                                   -      -            
+     0.58%            98  php_pcm_shared  php_pcm_shared        [.] execute_ex                                       -      -            
+     0.58%            97  php_pcm_shared  libc.so               [.] __pthread_mutex_lock                             -      -            
+     0.56%            93  php_pcm_shared  php_pcm_shared        [.] zim_PcmBuffer_append                             -      -            
+     0.19%            32  php_pcm_shared  php_pcm_shared        [.] ZEND_FETCH_DIM_R_SPEC_CV_CONST_HANDLER           -      -            
+     0.16%            26  php_pcm_shared  php_pcm_shared        [.] _ecalloc                                         -      -            
+     0.11%            19  php_pcm_shared  php_pcm_shared        [.] zend_string_equal_val                            -      -            
+     0.11%            19  php_pcm_shared  libc.so               [.] __pthread_mutex_unlock                           -      -            
+     0.11%            18  php_pcm_shared  php_pcm_shared        [.] ZEND_FETCH_DIM_R_SPEC_CV_TMPVAR_HANDLER          -      -            
+     0.10%            16  php_pcm_shared  php_pcm_shared        [.] psampler_resample_pcm16                          -      -            
+     0.09%            15  php_pcm_shared  php_pcm_shared        [.] zend_mm_alloc_pages                              -      -            
+     0.08%            14  php_pcm_shared  php_pcm_shared        [.] zend_std_get_property_ptr_ptr                    -      -            
+     0.07%            11  php_pcm_shared  php_pcm_shared        [.] ZEND_PRE_INC_OBJ_SPEC_CV_CONST_HANDLER           -      -            
+     0.06%            10  php_pcm_shared  php_pcm_shared        [.] ZEND_IS_IDENTICAL_SPEC_TMP_CONST_HANDLER         -      -            
+     0.06%            10  php_pcm_shared  php_pcm_shared        [.] zend_verify_recv_arg_type_helper_SPEC            -      -            
+     0.05%             9  php_pcm_shared  libc.so               [.] memcpy                                           -      -            
+     0.05%             8  php_pcm_shared  php_pcm_shared        [.] _efree                                           -      -            
+     0.05%             8  php_pcm_shared  php_pcm_shared        [.] zend_binary_assign_op_typed_prop                 -      -            
+     0.04%             7  php_pcm_shared  php_pcm_shared        [.] ZEND_ASSIGN_OBJ_OP_SPEC_CV_CONST_HANDLER         -      -            
+     0.04%             7  php_pcm_shared  php_pcm_shared        [.] pcm_ready                                        -      -            
+     0.03%             5  php_pcm_shared  php_pcm_shared        [.] zend_is_identical                                -      -            
+     0.02%             4  php_pcm_shared  php_pcm_shared        [.] zim_PcmBuffer_reset                              -      -            
+     0.02%             4  php_pcm_shared  php_pcm_shared        [.] ZEND_INIT_METHOD_CALL_SPEC_TMPVAR_CONST_HANDLER  -      -            
+     0.02%             4  php_pcm_shared  php_pcm_shared        [.] zend_mm_free_pages                               -      -            
+     0.02%             4  php_pcm_shared  php_pcm_shared        [.] free_context                                     -      -            
+     0.02%             4  php_pcm_shared  [unknown]             [k] 0xffffffffb804c46b                               -      -            
+     0.02%             3  php_pcm_shared  [unknown]             [k] 0xffffffffb7ff87b4                               -      -            
+     0.02%             3  php_pcm_shared  php_pcm_shared        [.] zim_PcmBuffer_resample                           -      -            
+     0.02%             3  php_pcm_shared  php_pcm_shared        [.] _emalloc_large                                   -      -            
+     0.02%             3  php_pcm_shared  php_pcm_shared        [.] zim_PcmBuffer_toMono                             -      -            
+     0.01%             2  php_pcm_shared  php_pcm_shared        [.] zend_verify_property_type                        -      -            
+     0.01%             2  php_pcm_shared  [unknown]             [k] 0xffffffffb8001ab2                               -      -            
+     0.01%             2  php_pcm_shared  [unknown]             [k] 0xffffffffb7f5191d                               -      -            
+     0.01%             2  php_pcm_shared  php_pcm_shared        [.] ZEND_FETCH_DIM_FUNC_ARG_SPEC_CV_CONST_HANDLER    -      -            
+     0.01%             2  php_pcm_shared  [unknown]             [k] 0xffffffffb8b8e6c1                               -      -            
+     0.01%             2  php_pcm_shared  php_pcm_shared        [.] ZEND_MOD_SPEC_TMPVARCV_TMPVARCV_HANDLER          -      -            
+     0.01%             2  php_pcm_shared  libc.so               [.] strlen                                           -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb800ace7                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] ZEND_BOOL_SPEC_TMPVAR_HANDLER                    -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb9269453                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7f51769                               -      -            
+     0.01%             1  php_pcm_shared  libc.so               [.] memmove                                          -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e07bc                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] filter_cache_unlock                              -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8001ab6                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e6dfd                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb810d3a9                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7f989a8                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8002362                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb800272c                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80220e6                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb829d945                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7c00ef3                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_mm_alloc_large                              -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e6345                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80caab5                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb806d110                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80024d4                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7c00ef0                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb802e84f                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] php_pack                                         -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8002537                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] ZEND_JMPZ_EX_SPEC_TMPVAR_HANDLER                 -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e6401                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7ff877a                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] add_function                                     -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8089014                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7feddb5                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb927f838                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zval_ptr_dtor                                    -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb800c09b                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_fetch_dimension_address_read_R_slow         -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80c6d6f                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zim_PcmBuffer_size                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb9285a2a                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_ast_alloc                                   -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8831ba2                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb9280d87                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e6d30                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb9280d79                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb80e1c80                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_delayed_compile_var                         -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_ast_list_add                                -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_add_literal                                 -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_delayed_compile_prop                        -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8021a63                               -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb802e85d                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] pass_two                                         -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] lex_scan                                         -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_pre_incdec_property_zval                    -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb804bb53                               -      -            
+     0.01%             1  php_pcm_shared  php_pcm_shared        [.] zend_register_functions                          -      -            
+     0.01%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb7c00080                               -      -            
+     0.01%             1  php_pcm_shared  libc.so               [.] alloc_slot                                       -      -            
+     0.00%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb8089000                               -      -            
+     0.00%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb833e249                               -      -            
+     0.00%             1  php_pcm_shared  libc.so               [.] do_relocs                                        -      -            
+     0.00%             1  php_pcm_shared  libc.so               [.] find_sym                                         -      -            
+     0.00%             1  php_pcm_shared  libc.so               [.] gnu_lookup_filtered                              -      -            
+     0.00%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb83b04b1                               -      -            
+     0.00%             1  php_pcm_shared  [unknown]             [k] 0xffffffffb92580b8                               -      -            
+     0.00%             1  taskset         ld-linux-x86-64.so.2  [.] _dl_relocate_object                              -      -            
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

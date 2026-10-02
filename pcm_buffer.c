@@ -179,36 +179,7 @@ static zend_bool pcm_valid_rate(zend_long rate, uint32_t argument)
 
 /* Object size/capacity always fit PHP int and zend_string. Allocation precedes
  * replacement; OOM cannot leave an object referring to released storage. */
-static zend_bool pcm_reserve(psampler_pcm_buffer *pcm, size_t required)
-{
-    size_t capacity;
-    unsigned char *data;
-    if (UNEXPECTED(required > PCM_BUFFER_MAX_SIZE)) {
-        zend_value_error("PcmBuffer exceeds the maximum supported size");
-        return 0;
-    }
-    if (required <= pcm->capacity) {
-        return 1;
-    }
-    capacity = pcm->capacity != 0 ? pcm->capacity : PCM_BUFFER_INITIAL_CAPACITY;
-    while (capacity < required) {
-        if (capacity > PCM_BUFFER_MAX_SIZE / 2) {
-            capacity = required;
-            break;
-        }
-        capacity *= 2;
-    }
-    data = emalloc(capacity);
-    if (pcm->size != 0) {
-        memcpy(data, pcm->data, pcm->size);
-    }
-    if (pcm->data != NULL) {
-        efree(pcm->data);
-    }
-    pcm->data = data;
-    pcm->capacity = capacity;
-    return 1;
-}
+#include "pcm_storage.inc"
 
 PHP_METHOD(PcmBuffer, __construct)
 {
@@ -377,8 +348,6 @@ PHP_METHOD(PcmBuffer, resample)
 {
     zend_long rate;
     psampler_pcm_buffer *pcm;
-    unsigned char *output;
-    size_t size, capacity;
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(rate)
     ZEND_PARSE_PARAMETERS_END();
@@ -389,20 +358,8 @@ PHP_METHOD(PcmBuffer, resample)
     if (!pcm_ready(pcm, 1)) {
         RETURN_THROWS();
     }
-    if (pcm->sample_rate != (uint32_t) rate) {
-        if (pcm->size != 0) {
-            if (psampler_resample_pcm16(pcm->data, pcm->size, pcm->sample_rate,
-                (uint32_t) rate, pcm->channels, &output, &size, &capacity) == FAILURE) {
-                RETURN_THROWS();
-            }
-            if (pcm->data != NULL) {
-                efree(pcm->data);
-            }
-            pcm->data = output;
-            pcm->size = size;
-            pcm->capacity = capacity;
-        }
-        pcm->sample_rate = (uint32_t) rate;
+    if (pcm_storage_resample(pcm, (uint32_t) rate) == FAILURE) {
+        RETURN_THROWS();
     }
     RETURN_OBJ_COPY(&pcm->std);
 }

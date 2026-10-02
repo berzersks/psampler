@@ -1,4 +1,4 @@
-# Benchmark PcmBuffer: PHP/C e Go
+# Benchmark PcmBuffer: PHP, C standalone e Go
 
 Este benchmark é exclusivamente o pipeline PCM16LE de storage contíguo,
 downmix e resampling. Não executa codecs, SIP, RTP ou serviços. Os arquivos
@@ -163,7 +163,9 @@ Diferenças a considerar:
   implementações; o Go não emula Zend nem alocações evitáveis do C.
 * A geração em ambas as implementações pré-calcula a janela Kaiser uma vez por banco. Bibliotecas
   matemáticas, avaliação em ponto flutuante e arredondamento podem divergir
-  entre builds. Não se exige hash igual do resampling entre linguagens.
+  entre builds. O teste histórico não exigia hash igual de resampling entre linguagens; a
+  matriz standalone e seu novo teste exigem igualdade PHP/C/Go nas sete taxas
+  e nos oito slots, com as flags documentadas.
 * PHP executa DSP em um thread com coroutines Swoole cooperativas; Go permite paralelismo
   de goroutines conforme `GOMAXPROCS`, que aparece no output. Registre essa
   configuração ao comparar wall/CPU. `GOMAXPROCS=1 ./pcm_benchmark_go ...` permite
@@ -251,7 +253,9 @@ Antes de executar, o script imprime o comando completo com escaping, total de
 frames, tempo lógico agregado/por chamada e bytes por frame. O relatório flat
 usa self cost, sem children, agrupado por comm/dso/symbol. O parser aceita
 `Samples: N`, separadores de milhares e sufixos K/M/G. Quando há vários eventos,
-a orientação usa o menor número de samples entre eles.
+a orientação informa todos os contadores e usa o evento dominante. Em máquinas
+híbridas, poucos samples em `cpu_atom` não invalidam um perfil dominado por
+`cpu_core`. `--event=cpu_core/cycles/` permite escolher a PMU explicitamente.
 
 Abaixo de 1000:
 
@@ -272,9 +276,9 @@ Aumentar frames para perf Go também aumenta o trabalho PHP na comparação just
 conserve os argumentos iguais ao comparar números, mesmo com wall diferente.
 
 O script usa as permissões perf do usuário, sem sudo automático nem mudanças de
-sysctl. Neste ambiente a gravação real foi tentada e bloqueada por
-`kernel.perf_event_paranoid=4`; por isso não foi produzido um perfil real.
-O parser e a geração de comandos foram testados com um executável perf simulado.
+sysctl. A tentativa histórica com `kernel.perf_event_paranoid=4` foi bloqueada.
+Na medição standalone de 2026-10-02 o valor era 0 e perfis reais foram coletados;
+consulte o relatório linkado abaixo. O parser também tem testes com perf simulado.
 
 ## Testes
 
@@ -376,3 +380,81 @@ NumGC_initial: 0
 NumGC_final: 0
 validation: ok
 ```
+
+
+## C standalone: mesmo DSP, sem PHP/Zend/Swoole
+
+`pcm_benchmark.c` executa o pipeline diretamente, com um buffer independente por
+call e a mesma ordem cooperativa de throughput do PHP. `psampler_dsp.inc` é a
+**única implementação** do FIR, cache, contexto, rounding e saída nativa: tanto
+`psampler.c` quanto `pcm_standalone.c` incluem esse arquivo. A inclusão conserva
+a visibilidade das funções no compilador; não cria outra implementação DSP.
+`pcm_core.c` fornece read/write e downmix; `pcm_storage.inc` compartilha o reserve
+e a substituição do storage com `PcmBuffer`. Nenhum coeficiente ou estado contínuo
+foi alterado. O teste C usa também o sink genérico como oráculo fora da medição,
+conservando os dois caminhos reais de chamada do DSP presentes na extensão.
+
+A adaptação `psampler_platform.h` troca somente serviços do host: erros,
+allocator e mutex. A extensão mantém `emalloc/ecalloc/efree`, allocator persistente
+e TSRM. C usa `malloc/calloc/free` e pthread; `PCM_DSP_THREADS=1` (default) conserva
+os locks para comparar com PHP ZTS. Para PHP NTS compile com `PCM_DSP_THREADS=0`.
+O contexto e a saída **continuam alocados por resampling** em ambos; não há pool,
+novo cache ou scratch reaproveitado que favoreça C. `reset` conserva capacidade;
+o reserve começa em 4096 e dobra, como na extensão. Para 96 kHz o crescimento
+4096 → 8192 a cada nova entrada também é conservado.
+
+Build portátil (compilador C, pthread e headers/lib de OpenSSL para SHA256):
+
+```sh
+./build_pcm_benchmark_c.sh
+./pcm_benchmark_c --runtime=throughput --calls=50 --frames=10000 --ptime=20 \
+  --source-rate=48000 --source-channels=2 --target-rate=8000 --target-channels=1
+```
+
+O script imprime o comando completo e aceita `CC`, `CFLAGS`, `CPPFLAGS`,
+`LDFLAGS`, `LDLIBS`. Defaults DSP: `-g -Os -fno-common -ffp-contract=off
+-fvisibility=hidden -fstack-protector-strong -fno-ident -fno-math-errno -fPIC
+-DNDEBUG`, sem LTO, `-march=native` ou fast-math. Esses defaults espelham o objeto
+PHP local; **verifique as flags da extensão que será comparada**, inclusive
+compilador/libc e ZTS/NTS. Um `cc` glibc do sistema não reproduz o build musl local.
+
+Comando exato do baseline musl/GCC 13.2 desta máquina:
+
+```sh
+CC=/usr/local/musl/bin/x86_64-linux-musl-gcc \
+CPPFLAGS=-I/home/lotus/CLionProjects/pcg729/buildroot/include \
+LDFLAGS='-static -L/home/lotus/CLionProjects/pcg729/buildroot/lib' \
+LDLIBS='-lcrypto -lz -lm -pthread' ./build_pcm_benchmark_c.sh
+```
+
+O C aceita os argumentos de throughput, `--verify` e `--duration` (frames
+explícitos prevalecem), com os mesmos defaults. Realtime é rejeitado explicitamente:
+este executável mede a remoção do runtime no cenário throughput solicitado.
+Fixtures e oito warmups por call precedem `getrusage`/`CLOCK_MONOTONIC`; hashes,
+reexecução, comparação sample a sample, impressão e liberação ficam depois.
+`output_sha256` tem a mesma semântica de PHP/Go (última saída de até três calls).
+Como 10.000 frames terminam no slot silencioso 7, o teste adicional compara os
+**oito slots separadamente**, incluindo áudio, em todas as taxas.
+
+```sh
+python3 tests/test_pcm_standalone.py --php=./php_pcm_shared --original-php=./php
+python3 bench/run_pcm_standalone.py --php=./php_pcm_shared --cpu=2
+# Somente a matriz, sem perf:
+python3 bench/run_pcm_standalone.py --php=./php_pcm_shared --cpu=2 --skip-perf
+# Perfil isolado (ajuste afinidade/PMU conforme o hardware):
+taskset -c 2 ./perf_pcm_benchmark.sh --language=c --event=cpu_core/cycles/ \
+  --source-rate=48000 --frames=30000 --data=perf-pcm-c.data --flat=perf-pcm-c-flat.txt
+```
+
+O runner usa três repetições alternando PHP/C/Go, 50 × 10.000 frames e
+`GOMAXPROCS=1`, com processos sequenciais no mesmo core. Perf usa 50 × 30.000
+frames em 44,1/48 kHz; `perf stat -r 5` usa a carga original de 500.000 frames.
+O runner também coleta PHP com `USE_ZEND_ALLOC=0`, separado da matriz principal,
+para distinguir parte do efeito do allocator. A diferença PHP/C mede o saldo
+da remoção da camada PHP **e** da troca obrigatória de allocator; não isola
+individualmente custo de método, validação, Zend, mutex ou Swoole.
+
+Resultados, dispersão, contadores de hardware e limites de atribuição estão em
+[docs/pcm-standalone-report.md](docs/pcm-standalone-report.md). Os relatórios brutos,
+comandos e hashes dos binários ficam em
+[bench/results/pcm-standalone-2026-10-02](bench/results/pcm-standalone-2026-10-02).
