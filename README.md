@@ -4,6 +4,37 @@ Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmp
 
 Versão atual: **0.6.0**.
 
+## PCM nativo: PcmBuffer e stereoToMono
+
+`stereoToMono(string $pcmData): string` converte PCM16LE stereo intercalado
+para mono com `(int32_t(left) + int32_t(right)) / 2`, truncando em direção a
+zero. Aceita vazio; frames incompletos (comprimento não múltiplo de 4) geram
+`ValueError`.
+
+```php
+$pcm = new PcmBuffer(sampleRate: 44100, channels: 2);
+$pcm->append($pcm16leStereo);
+$pcm->toMono()->resample(8000);
+$output = $pcm->toString();
+```
+
+`PcmBuffer` guarda PCM16LE contíguo e metadados nativos. Oferece `append()`,
+`size()`, `capacity()`, `sampleRate()`, `channels()`, `clear()`, `toString()`,
+`toMono()`, `toStereo()`, `resample()`, `canInvoke()` e `invoke()`.
+Transformações mutam e retornam o mesmo objeto, sem strings PHP intermediárias.
+Aceita taxas positivas que caibam em `uint32_t`/inteiro PHP e canais 1 ou 2;
+append exige frames completos. É final, não clonável e não serializável.
+`ByteBuffer` mantém sua API e semântica de fila genérica de bytes.
+
+Resampling usa o DSP existente com estado novo por chamada/canal e sem flush
+da cauda do filtro; blocos curtos podem produzir vazio. `invoke()` despacha
+handlers C registrados por extensões em startup; operações ausentes geram
+`ValueError`, e não há codecs registrados nesta etapa.
+
+O contrato de ownership, lifecycle/ZTS, API PHP/C e validações locais pendentes
+está em [docs/pcm-buffer.md](docs/pcm-buffer.md). Os novos PHPTs foram escritos,
+**sem execução**; nenhum build ou benchmark foi executado nesta implementação.
+
 ## PCMAnalyzer
 
 ```php

@@ -6,7 +6,7 @@
  *
  * VISAO GERAL
  * -----------
- * Esta extensao expoe ao userland PHP quatro classes e duas funcoes globais,
+ * Esta extensao expoe ao userland PHP cinco classes e tres funcoes globais,
  * todas voltadas para processamento de audio PCM de 16 bits (signed,
  * little-endian no fluxo intercalado de saida):
  *
@@ -26,13 +26,20 @@
  *   4) class PCMAnalyzer -> extracao de features acusticas e ring sobre
  *                           PCM16LE mono 8 kHz em quadros de 20 ms.
  *
- *   5) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
+ *   5) class PcmBuffer -> PCM16LE contiguo nativo, metadados, DSP mutavel
+ *                         e despacho de operacoes nativas via handle opaco.
+ *
+ *   6) function interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
  *                       -> intercala dois canais PCM 16-bit (L e R) em um
  *                          unico stream estereo intercalado.
  *
- *   6) function monoToStereo(string $pcmData): string
+ *   7) function monoToStereo(string $pcmData): string
  *                       -> duplica cada amostra PCM 16-bit mono nos canais
  *                          esquerdo e direito de um stream estereo.
+ *
+ *   8) function stereoToMono(string $pcmData): string
+ *                       -> media L/R com acumulador int32_t e divisao por 2
+ *                          truncada em direcao a zero.
  *
  * --------------------------------------------------------------------------
  * API: class Resampler
@@ -96,6 +103,27 @@
  *   capacity(): int
  *
  * --------------------------------------------------------------------------
+ * API: class PcmBuffer (final, nao clonavel/serializavel)
+ * --------------------------------------------------------------------------
+ *   __construct(int $sampleRate, int $channels) // 1 ou 2 canais
+ *   append(string $pcm): void // somente frames completos PCM16LE
+ *   size(): int; capacity(): int; sampleRate(): int; channels(): int
+ *   clear(): void; toString(): string
+ *   toMono(): PcmBuffer; toStereo(): PcmBuffer
+ *   resample(int $sampleRate): PcmBuffer
+ *   canInvoke(string $operation): bool
+ *   invoke(string $operation, mixed ...$args): mixed // args posicionais
+ *   Transformacoes mutam o proprio objeto, sem zend_string intermediaria.
+ *   Integracao C publica: psampler_native.h; contrato: docs/pcm-buffer.md.
+ *
+ * --------------------------------------------------------------------------
+ * API: funcao global stereoToMono
+ * --------------------------------------------------------------------------
+ *   stereoToMono(string $pcmData): string
+ *   PCM16LE stereo intercalado -> mono; tamanho multiplo de 4 bytes ou
+ *   ValueError. Vazio -> vazio; saida tem exatamente metade dos bytes.
+ *
+ * --------------------------------------------------------------------------
  * API: funcao global interleavePcmStereo
  * --------------------------------------------------------------------------
  *   interleavePcmStereo(string $leftPcm, string $rightPcm): string|false
@@ -127,8 +155,10 @@
  *   - Pos-processamento: remocao de DC offset (passa-alta de 1 polo) e soft
  *     clipping para evitar distorcao em [-32768, 32767].
  *   - Gerenciamento de memoria via emalloc/efree (pool do Zend) para os
- *     contextos/buffers e zend_string para as saidas (posse transferida ao
- *     engine, sem vazamentos).
+ *     contextos/buffers; o adapter Resampler produz zend_string e o adapter
+ *     PcmBuffer produz storage nativo com posse transferida ao objeto.
+ *   - Resampler e streaming mono; PcmBuffer usa contexto novo por canal em
+ *     cada resample(), alimenta blocos de ate 8192 samples sem flush da cauda.
  *
  * --------------------------------------------------------------------------
  * BUILD

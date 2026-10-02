@@ -8,6 +8,10 @@
 #include "php_psampler.h"
 #include "byte_buffer.h"
 #include "pcm_analyzer.h"
+#include "pcm_buffer.h"
+#include "pcm_core.h"
+#include "psampler_resample.h"
+#include <limits.h>
 #include <math.h>
 #include <zend_smart_str.h>
 #include <string.h>
@@ -207,13 +211,13 @@ typedef struct _psampler_context {
     double dst_rate;
     double last_dc;
     
-    int16_t *input_buffer;
+    int16_t input_buffer[MAX_BUFFER_SIZE];
     size_t buffer_size;
     size_t buffer_used;
     
     double frac_pos;
     
-    double *filter_bank;
+    double filter_bank[FILTER_LENGTH * 256];
     int filter_length;
     int phases;
     
@@ -278,7 +282,6 @@ static void generate_filter_bank(psampler_context *ctx)
     
     ctx->filter_length = filter_len;
     ctx->phases = phases;
-    ctx->filter_bank = (double *)emalloc(filter_len * phases * sizeof(double));
     
     double cutoff = (ctx->ratio < 1.0) ? ctx->ratio : 1.0;
     cutoff *= 0.95; // Margem de segurança para anti-aliasing
@@ -316,10 +319,8 @@ static psampler_context *create_context(double src_rate, double dst_rate)
     
     ctx->buffer_size = MAX_BUFFER_SIZE;
     ctx->buffer_used = 0;
-    ctx->input_buffer = (int16_t *)emalloc(ctx->buffer_size * sizeof(int16_t));
     memset(ctx->input_buffer, 0, ctx->buffer_size * sizeof(int16_t));
     
-    ctx->filter_bank = NULL;
     ctx->next = NULL;
     
     generate_filter_bank(ctx);
@@ -329,12 +330,6 @@ static psampler_context *create_context(double src_rate, double dst_rate)
 
 static void free_context(psampler_context *ctx)
 {
-    if (ctx->input_buffer) {
-        efree(ctx->input_buffer);
-    }
-    if (ctx->filter_bank) {
-        efree(ctx->filter_bank);
-    }
     efree(ctx);
 }
 
@@ -447,6 +442,206 @@ PHP_METHOD(Resampler, returnEmpty)
     RETURN_EMPTY_STRING();
 }
 
+/* Shared streaming DSP. The sink receives samples directly; it does not require
+ * a zend_string. Input stride selects a channel from interleaved PCM16LE.
+ * Admits at most the available context space, as the legacy adapter did. */
+typedef zend_result (*resample_sink)(void *state, int16_t sample);
+
+static zend_result resample_output_bound(const psampler_context *ctx,
+    size_t frames, size_t *max_out_samples)
+{
+    size_t space = ctx->buffer_size - ctx->buffer_used;
+    size_t used = ctx->buffer_used + (frames < space ? frames : space);
+    *max_out_samples = 0;
+    if (used > (size_t) (ctx->filter_length / 2)) {
+        double estimate = (used - ctx->filter_length / 2) * ctx->ratio;
+        size_t limit = ZSTR_MAX_LEN / 2;
+        if (limit > (size_t) ZEND_LONG_MAX / 2) {
+            limit = (size_t) ZEND_LONG_MAX / 2;
+        }
+        /* Reserve headroom for the legacy smart_str allocation's +16. */
+        if (!isfinite(estimate) || estimate >= (double) (limit - 8)) {
+            zend_value_error("Resampler output exceeds the maximum supported size");
+            return FAILURE;
+        }
+        *max_out_samples = (size_t) estimate;
+    }
+    return SUCCESS;
+}
+
+static zend_result resample_pcm16_block(psampler_context *ctx,
+    const unsigned char *input, size_t frames, size_t stride,
+    resample_sink sink, void *sink_state, size_t *out_count)
+{
+    size_t space_available = ctx->buffer_size - ctx->buffer_used;
+    size_t to_copy = frames < space_available ? frames : space_available;
+    int filter_half = ctx->filter_length / 2;
+    double step = 1.0 / ctx->ratio;
+    size_t max_out_samples;
+    *out_count = 0;
+
+    /* Preflight before modifying streaming state. */
+    if (resample_output_bound(ctx, frames, &max_out_samples) == FAILURE) {
+        return FAILURE;
+    }
+    for (size_t i = 0; i < to_copy; i++) {
+        ctx->input_buffer[ctx->buffer_used + i] =
+            (int16_t) psampler_pcm16_read(input + i * stride);
+    }
+    ctx->buffer_used += to_copy;
+    if (max_out_samples == 0) {
+        return SUCCESS;
+    }
+
+    while (*out_count < max_out_samples) {
+        /* Compare as double before conversion: extreme downsampling steps
+         * can advance frac_pos past SIZE_MAX on 32-bit hosts. */
+        if (ctx->frac_pos >= (double) (ctx->buffer_used - filter_half)) {
+            break;
+        }
+        size_t base_idx = (size_t) ctx->frac_pos;
+        double frac = ctx->frac_pos - base_idx;
+        int phase_idx = (int) (frac * ctx->phases);
+        if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
+        double sample = 0.0;
+        double *filter = &ctx->filter_bank[phase_idx * ctx->filter_length];
+        for (int i = 0; i < ctx->filter_length; i++) {
+            int src_idx = (int) base_idx - filter_half + i;
+            if (src_idx >= 0 && src_idx < (int) ctx->buffer_used) {
+                sample += ctx->input_buffer[src_idx] * filter[i];
+            }
+        }
+        ctx->last_dc = 0.9995 * ctx->last_dc + 0.0005 * sample;
+        sample -= ctx->last_dc;
+        if (sample > 32767.0) sample = 32767.0;
+        else if (sample < -32768.0) sample = -32768.0;
+        int16_t out_sample = (int16_t) lrint(sample);
+        if (sink(sink_state, out_sample) == FAILURE) {
+            return FAILURE;
+        }
+        ctx->frac_pos += step;
+        (*out_count)++;
+    }
+
+    if (ctx->frac_pos >= (double) ctx->buffer_used) {
+        ctx->buffer_used = 0;
+        ctx->frac_pos = 0.0;
+    } else {
+        size_t consumed = (size_t) ctx->frac_pos;
+        if (consumed > 0) {
+            ctx->frac_pos -= consumed;
+            memmove(ctx->input_buffer, ctx->input_buffer + consumed,
+                (ctx->buffer_used - consumed) * sizeof(int16_t));
+            ctx->buffer_used -= consumed;
+        }
+    }
+    return SUCCESS;
+}
+
+static zend_result resample_string_sink(void *state, int16_t sample)
+{
+    unsigned char bytes[2];
+    psampler_pcm16_write(bytes, sample);
+    smart_str_appendl((smart_str *) state, (const char *) bytes, 2);
+    return SUCCESS;
+}
+
+typedef struct {
+    unsigned char *data;
+    size_t capacity;
+    size_t frames[2];
+    uint16_t channels;
+    uint16_t channel;
+} resample_native_output;
+
+static zend_result resample_native_sink(void *state, int16_t sample)
+{
+    resample_native_output *out = state;
+    size_t stride = 2 * out->channels;
+    size_t frame = out->frames[out->channel];
+    size_t limit = (size_t) ZEND_LONG_MAX < ZSTR_MAX_LEN
+        ? (size_t) ZEND_LONG_MAX : ZSTR_MAX_LEN;
+    if (frame >= limit / stride) {
+        zend_value_error("PcmBuffer resampled output exceeds the maximum supported size");
+        return FAILURE;
+    }
+    size_t required = (frame + 1) * stride;
+    if (required > out->capacity) {
+        size_t capacity = out->capacity != 0 ? out->capacity : 4096;
+        while (capacity < required) {
+            if (capacity > limit / 2) {
+                capacity = required;
+                break;
+            }
+            capacity *= 2;
+        }
+        /* Zero unwritten stereo channel bytes, including during growth. */
+        unsigned char *data = ecalloc(capacity, 1);
+        if (out->data != NULL) {
+            memcpy(data, out->data, out->capacity);
+            efree(out->data);
+        }
+        out->data = data;
+        out->capacity = capacity;
+    }
+    psampler_pcm16_write(out->data + frame * stride + 2 * out->channel, sample);
+    out->frames[out->channel]++;
+    return SUCCESS;
+}
+
+zend_result psampler_resample_pcm16(const unsigned char *input, size_t input_size,
+    uint32_t src_rate, uint32_t dst_rate, uint16_t channels,
+    unsigned char **output, size_t *output_size, size_t *output_capacity)
+{
+    psampler_context *ctx;
+    resample_native_output out = {0};
+    size_t stride = 2 * channels;
+    *output = NULL;
+    *output_size = *output_capacity = 0;
+    if (src_rate == 0 || dst_rate == 0 || (channels != 1 && channels != 2)
+        || input_size % stride != 0 || (input_size != 0 && input == NULL)) {
+        zend_value_error("Invalid native PCM16LE resampling input");
+        return FAILURE;
+    }
+    out.channels = channels;
+    for (out.channel = 0; out.channel < channels; out.channel++) {
+        ctx = create_context((double) src_rate, (double) dst_rate);
+        size_t offset = 0, frames = input_size / stride;
+        while (offset < frames) {
+            size_t available = ctx->buffer_size - ctx->buffer_used;
+            size_t count = frames - offset;
+            size_t produced;
+            if (count > available) count = available;
+            if (resample_pcm16_block(ctx, input + offset * stride + 2 * out.channel,
+                count, stride, resample_native_sink, &out, &produced) == FAILURE) {
+                free_context(ctx);
+                if (out.data != NULL) efree(out.data);
+                return FAILURE;
+            }
+            offset += count;
+            /* The legacy finite streaming buffer cannot advance when the rate
+             * ratio is too small to produce a sample even with a full buffer. */
+            if (count == 0 && produced == 0) {
+                free_context(ctx);
+                if (out.data != NULL) efree(out.data);
+                zend_value_error("Sample rate ratio cannot advance the Resampler streaming buffer");
+                return FAILURE;
+            }
+        }
+        /* Keep legacy boundary behavior: no padding/flush of the retained tail. */
+        free_context(ctx);
+    }
+    if (channels == 2 && out.frames[0] != out.frames[1]) {
+        if (out.data != NULL) efree(out.data);
+        zend_throw_error(NULL, "Resampler channel output lengths differ");
+        return FAILURE;
+    }
+    *output = out.data;
+    *output_size = out.frames[0] * stride;
+    *output_capacity = out.capacity;
+    return SUCCESS;
+}
+
 PHP_METHOD(Resampler, sample)
 {
     zend_string *input;
@@ -502,102 +697,34 @@ PHP_METHOD(Resampler, sample)
         RETURN_EMPTY_STRING();
     }
 
-    const int16_t *new_samples = (const int16_t *)ZSTR_VAL(input);
-    size_t new_count = ZSTR_LEN(input) / 2;
-    
-    if (new_count == 0) {
+    /* Preserve legacy empty/one-byte input behavior, without draining state. */
+    size_t frames = ZSTR_LEN(input) / 2;
+    if (frames == 0) {
         RETURN_EMPTY_STRING();
     }
-    
-    // Adiciona novas amostras ao buffer interno do contexto
-    size_t space_available = ctx->buffer_size - ctx->buffer_used;
-    size_t to_copy = (new_count < space_available) ? new_count : space_available;
-    
-    if (to_copy > 0) {
-        memcpy(ctx->input_buffer + ctx->buffer_used, new_samples, to_copy * sizeof(int16_t));
-        ctx->buffer_used += to_copy;
+    size_t max_out_samples;
+    if (resample_output_bound(ctx, frames, &max_out_samples) == FAILURE) {
+        RETURN_THROWS();
     }
-    
-    // Calcula quantas amostras de saída podemos gerar
-    int filter_half = ctx->filter_length / 2;
-    double step = 1.0 / ctx->ratio;
-    size_t max_out_samples = 0;
-    
-    if (ctx->buffer_used > (size_t)filter_half) {
-        max_out_samples = (size_t)((ctx->buffer_used - filter_half) * ctx->ratio);
-    }
-    
-    if (max_out_samples == 0) {
-        RETURN_EMPTY_STRING();
-    }
-    
     smart_str out = {0};
-    smart_str_alloc(&out, max_out_samples * 2 + 16, 0);
-    
     size_t out_count = 0;
-    
-    // Processa com filtro polyphase de alta qualidade
-    while (out_count < max_out_samples) {
-        size_t base_idx = (size_t)ctx->frac_pos;
-        
-        // Verifica se temos amostras suficientes no buffer
-        if (base_idx + filter_half >= ctx->buffer_used) {
-            break;
-        }
-        
-        // Calcula índice da fase do filtro
-        double frac = ctx->frac_pos - base_idx;
-        int phase_idx = (int)(frac * ctx->phases);
-        if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
-        
-        // Aplica filtro polyphase
-        double sample = 0.0;
-        double *filter = &ctx->filter_bank[phase_idx * ctx->filter_length];
-        
-        for (int i = 0; i < ctx->filter_length; i++) {
-            int src_idx = (int)base_idx - filter_half + i;
-            if (src_idx >= 0 && src_idx < (int)ctx->buffer_used) {
-                sample += ctx->input_buffer[src_idx] * filter[i];
-            }
-        }
-        
-        // Remoção de DC offset aprimorada (filtro passa-alta de 1 polo)
-        ctx->last_dc = 0.9995 * ctx->last_dc + 0.0005 * sample;
-        sample -= ctx->last_dc;
-        
-        // Clipping suave (soft clipping) para evitar distorção
-        if (sample > 32767.0) sample = 32767.0;
-        else if (sample < -32768.0) sample = -32768.0;
-        
-        int16_t out_sample = (int16_t)lrint(sample);
-        smart_str_appendl(&out, (char *)&out_sample, 2);
-        
-        ctx->frac_pos += step;
-        out_count++;
+    if (max_out_samples != 0) {
+        smart_str_alloc(&out, max_out_samples * 2 + 16, 0);
     }
-    
-    // Atualiza pending_samples para controle de returnEmpty()
-    obj->pending_samples = (int)out_count;
-    
-    // Remove amostras processadas do buffer
-    size_t consumed = (size_t)ctx->frac_pos;
-    if (consumed > 0 && consumed < ctx->buffer_used) {
-        ctx->frac_pos -= consumed;
-        memmove(ctx->input_buffer, ctx->input_buffer + consumed, 
-                (ctx->buffer_used - consumed) * sizeof(int16_t));
-        ctx->buffer_used -= consumed;
-    } else if (consumed >= ctx->buffer_used) {
-        ctx->buffer_used = 0;
-        ctx->frac_pos = 0.0;
+    if (resample_pcm16_block(ctx, (const unsigned char *) ZSTR_VAL(input),
+        frames, 2, resample_string_sink, &out, &out_count) == FAILURE) {
+        smart_str_free(&out);
+        RETURN_THROWS();
     }
-    
+    /* Same public pending semantics; prevent narrowing overflow at huge ratios. */
+    if (max_out_samples != 0) {
+        obj->pending_samples = out_count > INT_MAX ? INT_MAX : (int) out_count;
+    }
     smart_str_0(&out);
-    
     if (out_count == 0) {
         smart_str_free(&out);
         RETURN_EMPTY_STRING();
     }
-    
     RETURN_STR(out.s);
 }
 
@@ -1002,17 +1129,38 @@ PHP_FUNCTION(monoToStereo)
     const unsigned char *src = (const unsigned char *)ZSTR_VAL(pcm_data);
     unsigned char *dst = (unsigned char *)ZSTR_VAL(out);
 
-    for (size_t src_offset = 0, dst_offset = 0;
-         src_offset < pcm_len;
-         src_offset += 2, dst_offset += 4) {
-        dst[dst_offset] = src[src_offset];
-        dst[dst_offset + 1] = src[src_offset + 1];
-        dst[dst_offset + 2] = src[src_offset];
-        dst[dst_offset + 3] = src[src_offset + 1];
-    }
+    psampler_pcm16_mono_to_stereo(src, pcm_len, dst);
 
     ZSTR_VAL(out)[out_len] = '\0';
     RETURN_STR(out);
+}
+
+PHP_FUNCTION(stereoToMono)
+{
+    zend_string *pcm_data;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(pcm_data)
+    ZEND_PARSE_PARAMETERS_END();
+    size_t length = ZSTR_LEN(pcm_data);
+    if (length % 4 != 0) {
+        zend_argument_value_error(1,
+            "must contain complete stereo PCM16LE frames (length must be a multiple of 4 bytes)");
+        RETURN_THROWS();
+    }
+    if (length == 0) {
+        RETURN_EMPTY_STRING();
+    }
+    /* Division cannot overflow. Check the Zend allocation limit explicitly. */
+    size_t output_length = length / 2;
+    if (output_length > ZSTR_MAX_LEN) {
+        zend_argument_value_error(1, "is too large to convert to mono");
+        RETURN_THROWS();
+    }
+    zend_string *output = zend_string_alloc(output_length, 0);
+    psampler_pcm16_stereo_to_mono((const unsigned char *) ZSTR_VAL(pcm_data),
+        length, (unsigned char *) ZSTR_VAL(output));
+    ZSTR_VAL(output)[output_length] = '\0';
+    RETURN_STR(output);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
@@ -1045,9 +1193,14 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_monoToStereo, 0, 1, IS_STRING, 0
     ZEND_ARG_TYPE_INFO(0, pcmData, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_stereoToMono, 0, 1, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, pcmData, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry psampler_functions[] = {
     PHP_FE(interleavePcmStereo, arginfo_interleavePcmStereo)
     PHP_FE(monoToStereo, arginfo_monoToStereo)
+    PHP_FE(stereoToMono, arginfo_stereoToMono)
     PHP_FE_END
 };
 
@@ -1131,6 +1284,8 @@ PHP_MINIT_FUNCTION(psampler)
     lpcm_ce->create_object = lpcm_create;
 
     psampler_register_byte_buffer_class();
+    psampler_pcm_registry_init();
+    psampler_register_pcm_buffer_class();
     memcpy(&pcm_analyzer_handlers, &std_object_handlers, sizeof(zend_object_handlers));
     pcm_analyzer_handlers.free_obj = pcm_analyzer_free;
     pcm_analyzer_handlers.offset = XtOffsetOf(pcm_analyzer_object, std);
@@ -1139,6 +1294,12 @@ PHP_MINIT_FUNCTION(psampler)
     pcm_analyzer_ce = zend_register_internal_class(&ce);
     pcm_analyzer_ce->create_object = pcm_analyzer_create;
     
+    return SUCCESS;
+}
+
+PHP_MSHUTDOWN_FUNCTION(psampler)
+{
+    psampler_pcm_registry_shutdown();
     return SUCCESS;
 }
 
@@ -1153,6 +1314,7 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "Description",
         "Reamostragem, manipulacao PCM e evidencias acusticas/ring PCM16");
     php_info_print_table_row(2, "Author", "psampler");
+    php_info_print_table_row(2, "PCM native API", "v1; startup registry, PCM16LE borrowed access");
     php_info_print_table_end();
 
     // Classes expostas ao userland
@@ -1170,6 +1332,12 @@ PHP_MINFO_FUNCTION(psampler)
         "__construct(int initialCapacity=4096), append(string): void, "
         "length(): int, has(int): bool, pop(int): string, peek(int): string, "
         "discard(int): void, clear(): void, capacity(): int");
+    php_info_print_table_row(2, "PcmBuffer",
+        "__construct(int sampleRate, int channels), append(string pcm): void, "
+        "size(): int, capacity(): int, sampleRate(): int, channels(): int, "
+        "clear(): void, toString(): string, toMono(): PcmBuffer, "
+        "toStereo(): PcmBuffer, resample(int sampleRate): PcmBuffer, "
+        "canInvoke(string operation): bool, invoke(string operation, mixed ...args): mixed");
     php_info_print_table_row(2, "PCMAnalyzer",
         "__construct(int sampleRate=8000, int frameDurationMs=20), analyze(string pcm): array");
     php_info_print_table_end();
@@ -1183,6 +1351,8 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "monoToStereo",
         "monoToStereo(string pcmData): string "
         "- duplica cada amostra PCM 16-bit mono nos canais L/R");
+    php_info_print_table_row(2, "stereoToMono",
+        "stereoToMono(string pcmData): string - PCM16LE average, truncation toward zero");
     php_info_print_table_end();
 
     // Detalhes internos de DSP / configuracao do filtro
@@ -1203,7 +1373,7 @@ zend_module_entry psampler_module_entry = {
     "psampler",
     psampler_functions,
     PHP_MINIT(psampler),
-    NULL,
+    PHP_MSHUTDOWN(psampler),
     NULL,
     NULL,
     PHP_MINFO(psampler),
