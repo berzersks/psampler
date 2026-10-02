@@ -14,6 +14,15 @@
 #define KAISER_BETA 8.6
 #define MAX_BUFFER_SIZE 8192
 #define FILTER_CACHE_LIMIT 16
+#define MAX_DSP_SAMPLE_RATE 768000
+#define MAX_RESAMPLE_CALL_BYTES ((size_t) 64 * 1024 * 1024)
+
+static bool dsp_rates_valid(uint32_t src_rate, uint32_t dst_rate)
+{
+    return src_rate >= 1000 && dst_rate >= 1000
+        && src_rate <= MAX_DSP_SAMPLE_RATE && dst_rate <= MAX_DSP_SAMPLE_RATE
+        && (double) src_rate / dst_rate <= MAX_BUFFER_SIZE - FILTER_LENGTH;
+}
 
 typedef struct _psampler_filter_bank {
     double src_rate;
@@ -35,7 +44,9 @@ typedef struct _psampler_context {
     size_t buffer_size;
     size_t buffer_used;
     
+    /* Absolute time makes phase independent of buffer compaction/chunk size. */
     double frac_pos;
+    size_t buffer_start;
     
     psampler_filter_bank *filter_bank;
     int filter_length;
@@ -249,6 +260,7 @@ static psampler_context *create_context(double src_rate, double dst_rate)
     ctx->ratio = dst_rate / src_rate;
     ctx->last_dc = 0.0;
     ctx->frac_pos = 0.0;
+    ctx->buffer_start = 0;
     
     ctx->buffer_size = MAX_BUFFER_SIZE;
     ctx->buffer_used = 0;
@@ -299,7 +311,8 @@ static psampler_result resample_output_bound(const psampler_context *ctx,
             psampler_value_error("Resampler output exceeds the maximum supported size");
             return PSAMPLER_FAILURE;
         }
-        *max_out_samples = (size_t) estimate;
+        /* Retained history and a fractional starting phase can add samples. */
+        *max_out_samples = (size_t) ceil(estimate) + 2;
     }
     return PSAMPLER_SUCCESS;
 }
@@ -378,13 +391,13 @@ static psampler_result resample_pcm16_block(psampler_context *ctx,
     }
 
     while (*out_count < max_out_samples) {
-        /* Compare as double before conversion: extreme downsampling steps
-         * can advance frac_pos past SIZE_MAX on 32-bit hosts. */
-        if (ctx->frac_pos >= (double) (ctx->buffer_used - filter_half)) {
+        if (ctx->frac_pos >= (double) (ctx->buffer_start
+            + ctx->buffer_used - filter_half)) {
             break;
         }
-        size_t base_idx = (size_t) ctx->frac_pos;
-        double frac = ctx->frac_pos - base_idx;
+        size_t absolute_base = (size_t) ctx->frac_pos;
+        size_t base_idx = absolute_base - ctx->buffer_start;
+        double frac = ctx->frac_pos - absolute_base;
         int phase_idx = (int) (frac * ctx->phases);
         if (phase_idx >= ctx->phases) phase_idx = ctx->phases - 1;
         double sample = 0.0;
@@ -425,17 +438,17 @@ static psampler_result resample_pcm16_block(psampler_context *ctx,
         native_out->frames[native_out->channel] = native_frame;
     }
 
-    if (ctx->frac_pos >= (double) ctx->buffer_used) {
-        ctx->buffer_used = 0;
-        ctx->frac_pos = 0.0;
-    } else {
-        size_t consumed = (size_t) ctx->frac_pos;
-        if (consumed > 0) {
-            ctx->frac_pos -= consumed;
-            memmove(ctx->input_buffer, ctx->input_buffer + consumed,
-                (ctx->buffer_used - consumed) * sizeof(int16_t));
-            ctx->buffer_used -= consumed;
-        }
+    /* Keep the past half of the FIR around the next interpolation point.
+     * Dropping all samples before frac_pos made every chunk a new boundary. */
+    size_t position = ctx->frac_pos < (double) (ctx->buffer_start + ctx->buffer_used)
+        ? (size_t) ctx->frac_pos - ctx->buffer_start : ctx->buffer_used;
+    size_t consumed = position > (size_t) filter_half
+        ? position - (size_t) filter_half : 0;
+    if (consumed > 0) {
+        ctx->buffer_start += consumed;
+        memmove(ctx->input_buffer, ctx->input_buffer + consumed,
+            (ctx->buffer_used - consumed) * sizeof(int16_t));
+        ctx->buffer_used -= consumed;
     }
     return PSAMPLER_SUCCESS;
 }
@@ -450,9 +463,14 @@ psampler_result psampler_resample_pcm16(const unsigned char *input, size_t input
     size_t stride = 2 * channels;
     *output = NULL;
     *output_size = *output_capacity = 0;
-    if (src_rate == 0 || dst_rate == 0 || (channels != 1 && channels != 2)
+    if (!dsp_rates_valid(src_rate, dst_rate) || (channels != 1 && channels != 2)
         || input_size % stride != 0 || (input_size != 0 && input == NULL)) {
         psampler_value_error("Invalid native PCM16LE resampling input");
+        return PSAMPLER_FAILURE;
+    }
+    if (((double) (input_size / stride) + FILTER_LENGTH) * dst_rate / src_rate
+        * stride > MAX_RESAMPLE_CALL_BYTES) {
+        psampler_value_error("PCM resampling output exceeds the 64 MiB per-call limit");
         return PSAMPLER_FAILURE;
     }
     out.channels = channels;
@@ -495,3 +513,120 @@ psampler_result psampler_resample_pcm16(const unsigned char *input, size_t input
     return PSAMPLER_SUCCESS;
 }
 
+struct psampler_pcm_stream {
+    psampler_context *context[2];
+    uint32_t src_rate, dst_rate;
+    uint16_t channels;
+    size_t input_frames;
+    size_t output_frames;
+    bool finished;
+};
+
+psampler_pcm_stream *psampler_pcm_stream_create(uint32_t src_rate, uint32_t dst_rate,
+    uint16_t channels)
+{
+    if (!dsp_rates_valid(src_rate, dst_rate) || (channels != 1 && channels != 2)) {
+        psampler_value_error("Invalid or unadvanceable PCM resampling rate/channel configuration");
+        return NULL;
+    }
+    psampler_pcm_stream *stream = psampler_calloc(1, sizeof(*stream));
+    stream->src_rate = src_rate;
+    stream->dst_rate = dst_rate;
+    stream->channels = channels;
+    for (uint16_t channel = 0; channel < channels; channel++) {
+        stream->context[channel] = create_context(src_rate, dst_rate);
+    }
+    return stream;
+}
+
+void psampler_pcm_stream_destroy(psampler_pcm_stream *stream)
+{
+    if (stream == NULL) return;
+    for (uint16_t channel = 0; channel < stream->channels; channel++) {
+        if (stream->context[channel] != NULL) free_context(stream->context[channel]);
+    }
+    psampler_free_mem(stream);
+}
+
+psampler_result psampler_pcm_stream_process(psampler_pcm_stream *stream,
+    const unsigned char *input, size_t input_size, bool finish,
+    unsigned char **output, size_t *output_size, size_t *output_capacity)
+{
+    resample_native_output out = {0};
+    size_t stride = 2 * stream->channels;
+    size_t frames;
+    static const unsigned char zeros[FILTER_LENGTH * 4] = {0};
+    out.data = *output;
+    out.capacity = *output_capacity;
+    *output_size = 0;
+    if (stream->finished || input_size % stride != 0
+        || (input_size != 0 && input == NULL)) {
+        psampler_value_error("Invalid PCM stream input or stream already flushed");
+        return PSAMPLER_FAILURE;
+    }
+    if (((double) (input_size / stride) + (finish ? FILTER_LENGTH : 0))
+        * stream->dst_rate / stream->src_rate * stride > MAX_RESAMPLE_CALL_BYTES) {
+        psampler_value_error("PCM stream output exceeds the 64 MiB per-call limit");
+        return PSAMPLER_FAILURE;
+    }
+    frames = input_size / stride;
+    if (frames > SIZE_MAX - stream->input_frames) {
+        psampler_value_error("PCM stream sample count overflow");
+        return PSAMPLER_FAILURE;
+    }
+    out.channels = stream->channels;
+    for (out.channel = 0; out.channel < stream->channels; out.channel++) {
+        psampler_context *ctx = stream->context[out.channel];
+        size_t offset = 0;
+        size_t supplied = frames + (finish ? FILTER_LENGTH : 0);
+        if (supplied < frames) {
+            psampler_value_error("PCM stream sample count overflow");
+            goto failure;
+        }
+        while (offset < supplied) {
+            size_t available = ctx->buffer_size - ctx->buffer_used;
+            size_t count = supplied - offset;
+            size_t produced = 0;
+            if (count > available) count = available;
+            if (offset < frames && count > frames - offset) count = frames - offset;
+            const unsigned char *block = offset < frames
+                ? input + offset * stride + 2 * out.channel : zeros;
+            if (resample_pcm16_block(ctx, block, count, stride, NULL, NULL,
+                &out, &produced) == PSAMPLER_FAILURE) goto failure;
+            offset += count;
+            if (count == 0 && produced == 0) {
+                psampler_value_error("Sample rate ratio cannot advance the PCM stream buffer");
+                goto failure;
+            }
+        }
+    }
+    if (out.frames[0] != out.frames[stream->channels - 1]) {
+        psampler_throw_error(NULL, "PCM stream channel output lengths differ");
+        goto failure;
+    }
+    stream->input_frames += frames;
+    if (finish) {
+        double expected = floor((double) stream->input_frames * stream->dst_rate
+            / stream->src_rate + 0.5);
+        if (!isfinite(expected) || expected > (double) (PSAMPLER_LONG_MAX / stride)) {
+            psampler_value_error("PCM stream output count overflow");
+            goto failure;
+        }
+        size_t wanted = (size_t) expected;
+        /* Flush emits the remaining FIR output, ending at the exact rounded
+         * duration. The initial left boundary uses implicit zero history. */
+        if (wanted < stream->output_frames) wanted = stream->output_frames;
+        wanted -= stream->output_frames;
+        if (out.frames[0] > wanted) out.frames[0] = wanted;
+        stream->finished = true;
+    }
+    stream->output_frames += out.frames[0];
+    *output = out.data;
+    *output_size = out.frames[0] * stride;
+    *output_capacity = out.capacity;
+    return PSAMPLER_SUCCESS;
+failure:
+    *output = out.data;
+    *output_capacity = out.capacity;
+    return PSAMPLER_FAILURE;
+}

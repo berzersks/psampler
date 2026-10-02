@@ -18,6 +18,7 @@ final class PcmBuffer {
     public function sampleRate(): int;
     public function channels(): int;
     public function clear(): void;
+    public function flush(): PcmBuffer;
     public function reset(int $sampleRate, int $channels): void;
     public function toString(): string;
     public function toMono(): PcmBuffer;
@@ -43,12 +44,13 @@ inteiro PHP e respeitam também o limite de alocação de `zend_string`.
 
 O objeto vazio começa sem alocação (`capacity() == 0`). O primeiro append
 não vazio reserva pelo menos 4096 bytes, com crescimento geométrico.
-`reset(sampleRate, channels)` zera o tamanho e atualiza taxa/canais, mantendo
-o storage e a capacidade atuais, sem alocar, liberar ou copiar PCM. Valida os
+`reset(sampleRate, channels)` zera o tamanho, atualiza taxa/canais e descarta
+o estado DSP da stream. Mantém o storage e a capacidade PCM atuais. Valida os
 dois argumentos antes de alterar o estado e segue a proteção contra mutações
-durante `invoke()`. É útil para reutilizar um buffer após transformações.
-`clear()` mantém capacidade e metadados; uma chamada explícita repetida ao
-construtor limpa o conteúdo e atualiza os metadados, mantendo capacidade.
+durante `invoke()`. `clear()` zera somente o payload e preserva metadados,
+fase, histórico FIR e DC. O próximo `append()` não vazio em uma stream ativa
+restaura o formato de entrada original antes de copiar o frame. Uma chamada explícita
+repetida ao construtor também inicia uma stream nova.
 Argumentos inválidos deixam o estado anterior intacto. `toString()` produz
 uma cópia independente; é a fronteira explícita de exportação para PHP.
 
@@ -71,30 +73,31 @@ seu adapter público existente para `sample()`. O algoritmo, banco de filtros,
 foram preservados. A leitura e escrita do PCM são explicitamente LE, sem
 casts de buffers de bytes para ponteiros que exijam alinhamento.
 
-O adapter `psampler_resample_pcm16()` cria um contexto novo por canal e por
-chamada, alimenta o buffer de streaming existente conforme o espaço disponível
-e acumula toda a saída em memória nativa. Stereo usa estados independentes
-por canal, com saída intercalada. Os contextos temporários são liberados ao
-final; não há estado de streaming persistente no `PcmBuffer`. Portanto,
-resampling de vários objetos/chamadas não equivale a uma sequência contínua
-de chamadas ao mesmo `Resampler`.
+Cada `PcmBuffer` guarda seu próprio estado DSP por canal. O banco de filtros
+compartilhado contém somente coeficientes imutáveis. A posição temporal é
+absoluta durante a stream; compactar o buffer não altera a fase. O buffer
+retém as 32 amostras anteriores necessárias aos taps FIR. Isso torna o
+resultado byte a byte independente dos limites dos chunks. O processamento
+consome também entradas maiores que 8192 samples.
 
-A cauda retida pelo filtro não é preenchida com zeros nem flushed: é descartada
-junto com o contexto temporário. Blocos curtos podem produzir vazio. A duração
-não é prometida como `frames * dstRate / srcRate`; o comportamento de borda é
-o do DSP existente. Para longos buffers, o adapter consome todos os frames,
-em várias alimentações, sem o truncamento de entrada de uma única chamada
-legada acima de 8192 samples. A API legada mantém seu limite por chamada.
+Fluxo recomendado para RTP: crie um objeto por stream, chame `clear()`,
+`append(frame)`, opcionalmente `toMono()`, `resample(targetRate)` e leia
+`toString()` a cada frame. Depois do último frame, `flush()` substitui o
+payload pela cauda final (zero padding FIR) e retorna o próprio objeto.
+Concatene essa saída uma vez. Chamadas repetidas a `flush()` produzem vazio.
+Após `flush()`, use `reset()` para iniciar uma nova stream. A contagem final é
+`round(totalInputSamples * targetRate / sourceRate)` por canal, sem drift.
 
-Uma razão extremamente baixa que encha o buffer de streaming sem permitir
-avanço, ainda com entrada por consumir, gera `ValueError`. Estimativas/alocações excessivas também são
-rejeitadas. Em falhas recuperáveis, a saída temporária é liberada e o objeto
-original mantém PCM, tamanho, capacidade e taxa. Após sucesso, o novo storage
-substitui o anterior e `sampleRate()` muda. No vazio, somente a taxa muda e a
-capacidade existente é mantida. Na mesma taxa, não há processamento nem troca.
+`resample()` faz bypass na mesma taxa. Alterar taxas/canais ou chamar `reset()`
+inicia uma configuração DSP nova; não mistura histórico entre streams. Taxas
+DSP suportadas ficam entre 1000 e 768000 Hz, com razão de downsample que
+possa avançar o buffer FIR. Taxas absurdas, entradas incompletas e estimativas
+de saída acima dos limites geram `ValueError` antes de alterar o PCM.
+Cada chamada de resampling limita a saída estimada a 64 MiB; streams longas
+devem ser entregues em chunks.
 
-Os contextos agora guardam input/filter em uma única alocação nativa, evitando
-alocações parciais sem owner. O adapter legado preserva sua reserva antecipada
+Os contextos guardam o buffer de entrada na própria alocação; cada contexto
+retém uma referência ao banco FIR cacheado. O adapter legado preserva sua reserva antecipada
 de saída e o estado de streaming, incluindo a entrada vazia que não drena a
 cauda. Acrescenta limites antes de conversões `double -> size_t` e satura
 `pending_samples` em `INT_MAX` em vez de estreitar contagens excessivas.

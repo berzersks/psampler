@@ -33,22 +33,34 @@ static bool pcm_reserve(psampler_pcm_buffer *pcm, size_t required)
 
 static psampler_result pcm_storage_resample(psampler_pcm_buffer *pcm, uint32_t rate)
 {
-    unsigned char *output;
-    size_t size, capacity;
-    if (pcm->sample_rate != (uint32_t) rate) {
-        if (pcm->size != 0) {
-            if (psampler_resample_pcm16(pcm->data, pcm->size, pcm->sample_rate,
-                (uint32_t) rate, pcm->channels, &output, &size, &capacity) == PSAMPLER_FAILURE) {
-                return PSAMPLER_FAILURE;
-            }
-            if (pcm->data != NULL) {
-                psampler_free_mem(pcm->data);
-            }
-            pcm->data = output;
-            pcm->size = size;
-            pcm->capacity = capacity;
-        }
-        pcm->sample_rate = (uint32_t) rate;
+    size_t size = 0;
+    if (pcm->sample_rate == rate) return PSAMPLER_SUCCESS;
+    if (pcm->flushed) {
+        psampler_value_error("PCM stream was flushed; call reset() before resampling again");
+        return PSAMPLER_FAILURE;
     }
+    if (pcm->size == 0) {
+        pcm->sample_rate = rate;
+        return PSAMPLER_SUCCESS;
+    }
+    if (pcm->stream == NULL || pcm->stream_src_rate != pcm->sample_rate
+        || pcm->stream_dst_rate != rate || pcm->stream_channels != pcm->channels) {
+        psampler_pcm_stream *next = psampler_pcm_stream_create(pcm->sample_rate,
+            rate, pcm->channels);
+        if (next == NULL) return PSAMPLER_FAILURE;
+        psampler_pcm_stream_destroy(pcm->stream);
+        pcm->stream = next;
+        pcm->stream_src_rate = pcm->sample_rate;
+        pcm->stream_dst_rate = rate;
+        pcm->stream_channels = pcm->channels;
+    }
+    if (psampler_pcm_stream_process(pcm->stream, pcm->data, pcm->size, false,
+        &pcm->scratch, &size, &pcm->scratch_capacity) == PSAMPLER_FAILURE) {
+        return PSAMPLER_FAILURE;
+    }
+    if (!pcm_reserve(pcm, size)) return PSAMPLER_FAILURE;
+    if (size != 0) memcpy(pcm->data, pcm->scratch, size);
+    pcm->size = size;
+    pcm->sample_rate = rate;
     return PSAMPLER_SUCCESS;
 }

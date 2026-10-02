@@ -12,4 +12,12 @@ psampler_result psampler_resample_pcm16(const unsigned char *input, size_t input
     uint32_t src_rate, uint32_t dst_rate, uint16_t channels,
     unsigned char **output, size_t *output_size, size_t *output_capacity);
 
+typedef struct psampler_pcm_stream psampler_pcm_stream;
+psampler_pcm_stream *psampler_pcm_stream_create(uint32_t src_rate, uint32_t dst_rate,
+    uint16_t channels);
+void psampler_pcm_stream_destroy(psampler_pcm_stream *stream);
+psampler_result psampler_pcm_stream_process(psampler_pcm_stream *stream,
+    const unsigned char *input, size_t input_size, bool finish,
+    unsigned char **output, size_t *output_size, size_t *output_capacity);
+
 #endif

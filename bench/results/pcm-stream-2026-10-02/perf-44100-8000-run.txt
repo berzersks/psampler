@@ -1,0 +1,73 @@
+frames totais: 500000
+tempo lógico agregado: 10000.000 segundos de áudio
+tempo lógico por chamada: 200.000 segundos
+bytes por frame de entrada: 3528
+comando completo: perf record -e cpu_core/cycles/ --freq 999 --call-graph dwarf --no-buildid-mmap --output /tmp/psampler-final-perf-44100-8000.data -- ./php ./pcm_benchmark.php --runtime=throughput --calls=50 --frames=10000 --ptime=20 --source-rate=44100 --source-channels=2 --target-rate=8000 --target-channels=1 
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+language: PHP
+implementation: psampler PcmBuffer / cached native sinc-Kaiser FIR
+scheduler: Swoole Coroutine
+runtime_mode: throughput
+calls: 50
+frames_per_call: 10000
+total_frames: 500000
+ptime_ms: 20
+source_rate: 44100
+source_channels: 2
+source_frame_bytes: 3528
+target_rate: 8000
+target_channels: 1
+elapsed_seconds: 5.735679
+frames_processed: 500000
+frames_per_second: 87173.641337
+input_bytes: 1764000000
+output_bytes: 159999500
+audio_seconds_processed: 10000
+audio_seconds_per_wall_second: 1743.472827
+cpu_user_seconds: 5.718111
+cpu_system_seconds: 0.002104
+cpu_total_seconds: 5.720215
+average_cpu_percent: 99.730394
+memory_initial_bytes: 3225536
+memory_peak_bytes: 3813672
+memory_final_bytes: 3785912
+memory_real_initial_bytes: 4194304
+memory_real_peak_bytes: 4194304
+memory_real_final_bytes: 4194304
+deadline_misses: n/a
+max_delay_ms: n/a
+average_delay_ms: n/a
+fixture_sha256: 0eb4aa0d2359c6fa429325157b94a2c217158d5c843d90f2843aa9e23800e427
+downmix_sha256: 52546c6655bda6e365d262681b2482971219336ed664c7212d7a0a1aebfa1e64
+output_sha256: 2eb944a4550c5d80b0aa2460b40eb2a5661974b025db6ff50c607d1805b83a2f,2eb944a4550c5d80b0aa2460b40eb2a5661974b025db6ff50c607d1805b83a2f,2eb944a4550c5d80b0aa2460b40eb2a5661974b025db6ff50c607d1805b83a2f
+verify: false
+validation: ok
+[ perf record: Woken up 189 times to write data ]
+[ perf record: Captured and wrote 47.208 MB /tmp/psampler-final-perf-44100-8000.data (5864 samples) ]
+Warning:
+Kernel address maps (/proc/{kallsyms,modules}) were restricted.
+
+Check /proc/sys/kernel/kptr_restrict before running 'perf record'.
+
+As no suitable kallsyms nor vmlinux was found, kernel samples
+can't be resolved.
+
+Samples in kernel modules can't be resolved as well.
+
+Samples por evento: [0, 5000]; evento dominante: 5000
+perfil possui amostragem adequada para análise de hotspots
+Dados do perf: /tmp/psampler-final-perf-44100-8000.data
+Relatório: bench/results/pcm-stream-2026-10-02/perf-44100-8000.txt

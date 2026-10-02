@@ -288,6 +288,13 @@ PHP_METHOD(Resampler, __construct)
         Z_PARAM_LONG(dst)
     ZEND_PARSE_PARAMETERS_END();
 
+    if ((src != 0 || dst != 0) && (src <= 0 || dst <= 0
+        || (uint64_t) src > UINT32_MAX || (uint64_t) dst > UINT32_MAX
+        || !dsp_rates_valid((uint32_t) src, (uint32_t) dst))) {
+        zend_value_error("Resampler rates must be supported positive PCM sample rates");
+        RETURN_THROWS();
+    }
+
     psampler_object *obj = PSAMPLER_OBJ(getThis());
     obj->pending_samples = 0;
     obj->min_output_samples = 512; // Mínimo de amostras para pacote válido
@@ -353,6 +360,17 @@ PHP_METHOD(Resampler, sample)
         Z_PARAM_LONG(dst)
     ZEND_PARSE_PARAMETERS_END();
 
+    if ((src != 0 || dst != 0) && (src <= 0 || dst <= 0
+        || (uint64_t) src > UINT32_MAX || (uint64_t) dst > UINT32_MAX
+        || !dsp_rates_valid((uint32_t) src, (uint32_t) dst))) {
+        zend_value_error("Resampler rates must be supported positive PCM sample rates");
+        RETURN_THROWS();
+    }
+    if (ZSTR_LEN(input) & 1) {
+        zend_value_error("PCM16 input length must be even");
+        RETURN_THROWS();
+    }
+
     psampler_object *obj = PSAMPLER_OBJ(getThis());
     psampler_context *ctx = obj->current_context;
     
@@ -396,10 +414,15 @@ PHP_METHOD(Resampler, sample)
         RETURN_EMPTY_STRING();
     }
 
-    /* Preserve legacy empty/one-byte input behavior, without draining state. */
+    /* Empty input leaves the stream state intact. */
     size_t frames = ZSTR_LEN(input) / 2;
     if (frames == 0) {
         RETURN_EMPTY_STRING();
+    }
+    if (((double) frames + FILTER_LENGTH) * ctx->ratio * 2
+        > MAX_RESAMPLE_CALL_BYTES) {
+        zend_value_error("Resampler output exceeds the 64 MiB per-call limit");
+        RETURN_THROWS();
     }
     size_t max_out_samples;
     if (resample_output_bound(ctx, frames, &max_out_samples) == FAILURE) {
@@ -410,10 +433,24 @@ PHP_METHOD(Resampler, sample)
     if (max_out_samples != 0) {
         smart_str_alloc(&out, max_out_samples * 2 + 16, 0);
     }
-    if (resample_pcm16_block(ctx, (const unsigned char *) ZSTR_VAL(input),
-        frames, 2, resample_string_sink, &out, NULL, &out_count) == FAILURE) {
-        smart_str_free(&out);
-        RETURN_THROWS();
+    for (size_t offset = 0; offset < frames;) {
+        size_t available = ctx->buffer_size - ctx->buffer_used;
+        size_t count = frames - offset;
+        size_t produced = 0;
+        if (count > available) count = available;
+        if (resample_pcm16_block(ctx,
+            (const unsigned char *) ZSTR_VAL(input) + offset * 2,
+            count, 2, resample_string_sink, &out, NULL, &produced) == FAILURE) {
+            smart_str_free(&out);
+            RETURN_THROWS();
+        }
+        offset += count;
+        out_count += produced;
+        if (count == 0 && produced == 0) {
+            smart_str_free(&out);
+            zend_value_error("Sample rate ratio cannot advance the Resampler streaming buffer");
+            RETURN_THROWS();
+        }
     }
     /* Same public pending semantics; prevent narrowing overflow at huge ratios. */
     if (max_out_samples != 0) {

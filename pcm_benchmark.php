@@ -71,7 +71,11 @@ function pcmFixture(int $rate, int $channels, int $n, int $slot): string {
     return $b;
 }
 function pcmPipeline(PcmBuffer $p, string $b, array $c): void {
-    $p->reset($c['source-rate'], $c['source-channels']);
+    if ($c['source-rate'] === $c['target-rate']) {
+        $p->reset($c['source-rate'], $c['source-channels']);
+    } else {
+        $p->clear();
+    }
     $p->append($b);
     if ($c['source-channels'] === 2 && $c['target-channels'] === 1) { $p->toMono(); }
     $p->resample($c['target-rate']);
@@ -124,9 +128,6 @@ function pcmValidate(PcmBuffer $p, string $b, array $c): string {
     if ($c['source-rate'] === $c['target-rate'] || max($n-32,0)*$c['target-rate']/$c['source-rate'] >= 1) {
         pcmAssert($out > 0, 'saída inesperadamente vazia');
     }
-    $reference = new PcmBuffer($c['source-rate'],$c['source-channels']);
-    pcmPipeline($reference,$b,$c);
-    pcmAssert($reference->toString() === $output, 'resultado não determinístico');
     return hash('sha256',$output);
 }
 function pcmMain(array $argv): void {
@@ -144,6 +145,7 @@ function pcmMain(array $argv): void {
     for ($i=0; $i<$c['calls']; $i++) {
         $state = new PcmCallState($c); $states[] = $state;
         foreach ($bank as $b) { pcmPipeline($state->pcm,$b,$c); } // Warm capacity/DSP paths before barrier.
+        $state->pcm->reset($c['source-rate'], $c['source-channels']);
     }
     $initial = $initialReal = $peak = $peakReal = $final = $finalReal = 0;
     $u0 = $s0 = $u1 = $s1 = $elapsed = 0.0;
@@ -203,34 +205,26 @@ function pcmMain(array $argv): void {
         $frames += $state->frames; $bytes += $state->bytes; $misses += $state->misses;
         $delay += $state->delay; $maxDelay = max($maxDelay,$state->maxDelay);
     }
-    $hashes=[];
-    for ($i=0; $i<min($c['calls'],3); $i++) { $hashes[]=pcmValidate($states[$i]->pcm,$bank[($c['frames']-1)%PCM_FIXTURE_SLOTS],$c); }
     $downmixHash=pcmVerifyDownmix($bank,$c);
-    $reference = new PcmBuffer($c['source-rate'],$c['source-channels']); $cycleBytes=0; $tailBytes=0;
-    foreach ($bank as $slot=>$b) {
-        pcmPipeline($reference,$b,$c); $cycleBytes += $reference->size();
-        if ($slot < $c['frames'] % PCM_FIXTURE_SLOTS) { $tailBytes += $reference->size(); }
-        if ($c['verify']) {
-            $expected = $reference->toString(); pcmValidate($reference,$b,$c);
-            // Independent public DSP oracle for blocks within the legacy 8192-sample limit.
-            if ($c['samples'] <= 8192) {
-                $oracle = $c['source-channels'] === 2 && $c['target-channels'] === 1 ? pcmReferenceDownmix($b) : $b;
-                if ($c['source-rate'] !== $c['target-rate']) {
-                    if ($c['target-channels'] === 1) { $oracle = (new Resampler($c['source-rate'],$c['target-rate']))->sample($oracle); }
-                    else {
-                        $left=''; $right='';
-                        for ($j=0; $j<strlen($oracle); $j+=4) { $left.=substr($oracle,$j,2); $right.=substr($oracle,$j+2,2); }
-                        $oracle=interleavePcmStereo((new Resampler($c['source-rate'],$c['target-rate']))->sample($left),
-                            (new Resampler($c['source-rate'],$c['target-rate']))->sample($right));
-                    }
-                }
-                pcmAssert($expected === $oracle, 'paridade com DSP público falhou');
-            }
-            for ($repeat=0; $repeat<3; $repeat++) { pcmPipeline($reference,$b,$c); pcmAssert($reference->toString()===$expected,'reuso não determinístico'); }
-        }
+    $reference = new PcmBuffer($c['source-rate'],$c['source-channels']); $referenceBytes=0;
+    for ($frame=0; $frame<$c['frames']; $frame++) {
+        pcmPipeline($reference,$bank[$frame % PCM_FIXTURE_SLOTS],$c);
+        $referenceBytes += $reference->size();
     }
-    $expectedBytes = $c['calls'] * (intdiv($c['frames'],PCM_FIXTURE_SLOTS)*$cycleBytes+$tailBytes);
+    $expectedBytes = $c['calls'] * $referenceBytes;
     pcmAssert($frames === $c['calls']*$c['frames'] && $bytes === $expectedBytes, 'contagem de frames/bytes inválida');
+    $hashes=[];
+    for ($i=0; $i<min($c['calls'],3); $i++) {
+        $hashes[]=pcmValidate($states[$i]->pcm,$bank[($c['frames']-1)%PCM_FIXTURE_SLOTS],$c);
+        pcmAssert($states[$i]->pcm->toString() === $reference->toString(), 'resultado não determinístico entre streams');
+    }
+    if ($c['verify']) {
+        $second = new PcmBuffer($c['source-rate'],$c['source-channels']);
+        for ($frame=0; $frame<$c['frames']; $frame++) {
+            pcmPipeline($second,$bank[$frame % PCM_FIXTURE_SLOTS],$c);
+        }
+        pcmAssert($second->toString() === $reference->toString(), 'reprodução completa da stream divergiu');
+    }
     $audio = $frames * $c['samples'] / $c['source-rate']; $cpu = $u1-$u0+$s1-$s0;
     $report = ['language'=>'PHP','implementation'=>'psampler PcmBuffer / cached native sinc-Kaiser FIR',
         'scheduler'=>'Swoole Coroutine',

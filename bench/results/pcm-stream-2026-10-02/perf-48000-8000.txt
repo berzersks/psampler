@@ -1,0 +1,67 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 5K of event 'cpu_core/cycles/'
+# Event count (approx.): 25851777316
+#
+# Overhead  Command  Shared Object     Symbol                                               IPC   [IPC Coverage]
+# ........  .......  ................  ...................................................  ....................
+#
+    85.76%  php      php               [.] resample_pcm16_block                             -      -            
+    11.31%  php      php               [.] psampler_pcm16_stereo_to_mono                    -      -            
+     0.73%  php      php               [.] execute_ex                                       -      -            
+     0.43%  php      php               [.] zim_PcmBuffer_append                             -      -            
+     0.23%  php      php               [.] psampler_pcm_stream_process                      -      -            
+     0.21%  php      php               [.] zend_hash_find_known_hash                        -      -            
+     0.16%  php      php               [.] zend_verify_recv_arg_type_helper_SPEC            -      -            
+     0.14%  php      php               [.] zend_string_equal_val                            -      -            
+     0.12%  php      php               [.] zim_PcmBuffer_resample                           -      -            
+     0.07%  php      php               [.] zend_is_identical                                -      -            
+     0.07%  php      php               [.] memcpy                                           -      -            
+     0.07%  php      php               [.] ZEND_FETCH_DIM_R_SPEC_CV_CONST_HANDLER           -      -            
+     0.05%  php      php               [.] ZEND_FETCH_DIM_R_SPEC_CV_TMPVAR_HANDLER          -      -            
+     0.05%  php      php               [.] ZEND_ASSIGN_OBJ_OP_SPEC_CV_CONST_HANDLER         -      -            
+     0.03%  php      php               [.] zend_std_get_property_ptr_ptr                    -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb838285a                               -      -            
+     0.02%  php      php               [.] get_meta                                         -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb8001b0d                               -      -            
+     0.02%  php      php               [.] ZEND_PRE_INC_OBJ_SPEC_CV_CONST_HANDLER           -      -            
+     0.02%  php      php               [.] ZEND_INIT_METHOD_CALL_SPEC_TMPVAR_CONST_HANDLER  -      -            
+     0.02%  php      php               [.] pcm_ready                                        -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb9280dcd                               -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb80e5f42                               -      -            
+     0.02%  php      php               [.] pcm_reserve                                      -      -            
+     0.02%  php      php               [.] resample_output_bound                            -      -            
+     0.02%  php      php               [.] ZEND_FETCH_DIM_FUNC_ARG_SPEC_CV_CONST_HANDLER    -      -            
+     0.02%  php      php               [.] ceil                                             -      -            
+     0.02%  php      php               [.] zend_hash_find                                   -      -            
+     0.02%  php      php               [.] zend_binary_assign_op_typed_prop                 -      -            
+     0.02%  php      php               [.] zif_pack                                         -      -            
+     0.02%  php      php               [.] memmove                                          -      -            
+     0.02%  php      php               [.] ZEND_JMPZ_EX_SPEC_TMPVAR_HANDLER                 -      -            
+     0.02%  php      php               [.] ZEND_MUL_SPEC_TMPVARCV_CONST_HANDLER             -      -            
+     0.02%  php      php               [.] ZEND_MOD_SPEC_TMPVARCV_TMPVARCV_HANDLER          -      -            
+     0.02%  php      php               [.] emit_lea_binary                                  -      -            
+     0.02%  php      php               [.] _emalloc                                         -      -            
+     0.02%  php      php               [.] ZEND_IS_IDENTICAL_SPEC_TMP_CONST_HANDLER         -      -            
+     0.02%  php      php               [.] zend_compile_expr                                -      -            
+     0.02%  php      php               [.] zend_calc_live_ranges                            -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb7ff87b4                               -      -            
+     0.02%  php      php               [.] lex_scan                                         -      -            
+     0.02%  php      php               [.] zend_hash_func                                   -      -            
+     0.02%  php      php               [.] zendparse                                        -      -            
+     0.02%  php      [unknown]         [k] 0xffffffffb837f7c5                               -      -            
+     0.02%  php      php               [.] alloc_slot                                       -      -            
+     0.01%  php      php               [.] zend_duplicate_internal_function.isra.0          -      -            
+     0.01%  php      php               [.] expand                                           -      -            
+     0.01%  php      [unknown]         [k] 0xffffffffb925d800                               -      -            
+     0.01%  php      [unknown]         [k] 0xffffffffb849423a                               -      -            
+     0.01%  php      php               [.] read_encoded_value_with_base                     -      -            
+     0.00%  php      [unknown]         [k] 0xffffffffb7c00b90                               -      -            
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

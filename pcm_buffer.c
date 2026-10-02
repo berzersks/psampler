@@ -20,6 +20,14 @@ struct _psampler_pcm_buffer {
     size_t capacity;
     uint32_t sample_rate;
     uint16_t channels;
+    uint32_t frame_rate;
+    uint16_t frame_channels;
+    uint32_t stream_src_rate, stream_dst_rate;
+    uint16_t stream_channels;
+    psampler_pcm_stream *stream;
+    unsigned char *scratch;
+    size_t scratch_capacity;
+    zend_bool flushed;
     zend_bool invoking;
     zend_object std;
 };
@@ -147,6 +155,8 @@ static zend_object *pcm_buffer_create(zend_class_entry *ce)
 static void pcm_buffer_free(zend_object *object)
 {
     psampler_pcm_buffer *pcm = pcm_from_object(object);
+    psampler_pcm_stream_destroy(pcm->stream);
+    if (pcm->scratch != NULL) efree(pcm->scratch);
     if (pcm->data != NULL) {
         efree(pcm->data);
     }
@@ -202,9 +212,14 @@ PHP_METHOD(PcmBuffer, __construct)
         RETURN_THROWS();
     }
     /* A repeated constructor call resets size/metadata, retaining capacity. */
+    psampler_pcm_stream_destroy(pcm->stream);
+    pcm->stream = NULL;
+    pcm->flushed = 0;
     pcm->size = 0;
     pcm->sample_rate = (uint32_t) rate;
     pcm->channels = (uint16_t) channels;
+    pcm->frame_rate = (uint32_t) rate;
+    pcm->frame_channels = (uint16_t) channels;
 }
 
 PHP_METHOD(PcmBuffer, append)
@@ -212,6 +227,7 @@ PHP_METHOD(PcmBuffer, append)
     zend_string *input;
     psampler_pcm_buffer *pcm;
     size_t length;
+    uint16_t input_channels;
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(input)
     ZEND_PARSE_PARAMETERS_END();
@@ -220,7 +236,9 @@ PHP_METHOD(PcmBuffer, append)
         RETURN_THROWS();
     }
     length = ZSTR_LEN(input);
-    if (length % (2 * pcm->channels) != 0) {
+    input_channels = pcm->size == 0 && pcm->stream != NULL
+        ? pcm->frame_channels : pcm->channels;
+    if (length % (2 * input_channels) != 0) {
         zend_argument_value_error(1, "must contain complete PCM16LE frames for the current channels");
         RETURN_THROWS();
     }
@@ -231,6 +249,10 @@ PHP_METHOD(PcmBuffer, append)
     if (length != 0) {
         if (!pcm_reserve(pcm, pcm->size + length)) {
             RETURN_THROWS();
+        }
+        if (pcm->size == 0 && pcm->stream != NULL) {
+            pcm->sample_rate = pcm->frame_rate;
+            pcm->channels = pcm->frame_channels;
         }
         memcpy(pcm->data + pcm->size, ZSTR_VAL(input), length);
         pcm->size += length;
@@ -258,9 +280,14 @@ PHP_METHOD(PcmBuffer, reset)
         RETURN_THROWS();
     }
     /* No allocation, release, or PCM copy: storage remains owned by this object. */
+    psampler_pcm_stream_destroy(pcm->stream);
+    pcm->stream = NULL;
+    pcm->flushed = 0;
     pcm->size = 0;
     pcm->sample_rate = (uint32_t) rate;
     pcm->channels = (uint16_t) channels;
+    pcm->frame_rate = (uint32_t) rate;
+    pcm->frame_channels = (uint16_t) channels;
     RETURN_NULL();
 }
 
@@ -289,6 +316,28 @@ PHP_METHOD(PcmBuffer, clear)
     }
     pcm->size = 0;
     RETURN_NULL();
+}
+
+PHP_METHOD(PcmBuffer, flush)
+{
+    psampler_pcm_buffer *pcm;
+    size_t size = 0;
+    ZEND_PARSE_PARAMETERS_NONE();
+    pcm = PCM_BUFFER_OBJ(getThis());
+    if (!pcm_ready(pcm, 1)) RETURN_THROWS();
+    if (pcm->stream != NULL && !pcm->flushed) {
+        if (psampler_pcm_stream_process(pcm->stream, NULL, 0, true,
+            &pcm->scratch, &size, &pcm->scratch_capacity) == FAILURE) RETURN_THROWS();
+        if (!pcm_reserve(pcm, size)) RETURN_THROWS();
+        if (size != 0) memcpy(pcm->data, pcm->scratch, size);
+        pcm->size = size;
+        pcm->sample_rate = pcm->stream_dst_rate;
+        pcm->channels = pcm->stream_channels;
+        pcm->flushed = 1;
+    } else {
+        pcm->size = 0;
+    }
+    RETURN_OBJ_COPY(&pcm->std);
 }
 
 PHP_METHOD(PcmBuffer, toString)
@@ -460,6 +509,7 @@ static const zend_function_entry pcm_buffer_methods[] = {
     PHP_ME(PcmBuffer, sampleRate, arginfo_pcm_buffer_int, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, channels, arginfo_pcm_buffer_int, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, clear, arginfo_pcm_buffer_clear, ZEND_ACC_PUBLIC)
+    PHP_ME(PcmBuffer, flush, arginfo_pcm_buffer_transform, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, reset, arginfo_pcm_buffer_reset, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, toString, arginfo_pcm_buffer_string, ZEND_ACC_PUBLIC)
     PHP_ME(PcmBuffer, toMono, arginfo_pcm_buffer_transform, ZEND_ACC_PUBLIC)
