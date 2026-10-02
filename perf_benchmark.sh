@@ -262,7 +262,7 @@ case "$language" in
     php)
         [[ -x ./php ]] || fail 'o binário ./php não existe ou não é executável'
         [[ -f ./voice_benchmark.php ]] || fail 'voice_benchmark.php não foi encontrado'
-        benchmark_command=(/home/lotus/Downloads/nstrip ./voice_benchmark.php)
+        benchmark_command=(./php ./voice_benchmark.php)
         ;;
 esac
 

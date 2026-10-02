@@ -1,7 +1,8 @@
 <?php
 
 declare(strict_types=1);
-
+\Swoole\Runtime::enableCoroutine();
+ob_get_clean();
 const CHECKSUM_MODULUS = 2147483647;
 const CHECKSUM_MULTIPLIER = 65599;
 const BYTE_BUFFER_INITIAL_CAPACITY = 4096;

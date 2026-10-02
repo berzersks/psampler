@@ -1,0 +1,921 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 9  of event 'cpu_atom/cycles/P'
+# Event count (approx.): 5440730
+#
+# Overhead  Command  Shared Object      Symbol                            IPC   [IPC Coverage]
+# ........  .......  .................  ................................  ....................
+#
+    15.65%  php      php                [.] read_encoded_value_with_base  -      -            
+            |
+            ---read_encoded_value_with_base
+               classify_object_over_fdes
+               __register_frame_info_bases (inlined)
+               __register_frame_info_bases (inlined)
+               __register_frame_info
+               frame_dummy
+               libc_start_init
+
+    15.60%  sudo     [kernel.kallsyms]  [k] 0xffffffffb7f65240            -      -            
+            |
+            ---0xffffffffb7f65246
+               0xffffffffb80f1197
+               0xffffffffb80f1434
+               0xffffffffb7f65926
+               0xffffffffb7f65b71
+               0xffffffffb8353455
+               0xffffffffb837174d
+               0xffffffffb8372293
+               0xffffffffb837312f
+               0xffffffffb8373243
+               0xffffffffb8375244
+               0xffffffffb834ecdb
+               0xffffffffb7e8f921
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __munmap (inlined)
+               _dl_unmap_segments (inlined)
+               _dl_unmap
+               _dl_close_worker.part.0
+               _dl_close_worker (inlined)
+               _dl_close
+               _dl_catch_exception
+               _dl_catch_error
+               _dlerror_run
+               __dlclose (inlined)
+               0x72f6dc05eeac
+               pam_end
+               0x72f6db77e75f
+               0x72f6db78cff5
+               0x56f37673fc71
+               0x56f376743763
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+    14.66%  sudo     [kernel.kallsyms]  [k] 0xffffffffb86f0bc9            -      -            
+            |
+            ---0xffffffffb86f0bcd
+               0xffffffffb846115e
+               0xffffffffb84612bf
+               0xffffffffb8461a0c
+               0xffffffffb8461e20
+               0xffffffffb846201f
+               0xffffffffb845a5bc
+               0xffffffffb845b636
+               0xffffffffb845b8eb
+               0xffffffffb845bb3e
+               0xffffffffb845cbcb
+               0xffffffffb850feeb
+               0xffffffffb8518486
+               0xffffffffb7f9493d
+               0xffffffffb7f9517a
+               0xffffffffb7f9586e
+               0xffffffffb7f967c8
+               0xffffffffb7f96871
+               0xffffffffb7f96fab
+               0xffffffffb7f9711b
+               0xffffffffb7f9715c
+               0xffffffffb7e8f606
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __wait4 (inlined)
+               0x56f37672c2f1
+               sudo_ev_loop_v1
+               0x56f37673cc4c
+               0x56f376743596
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     9.20%  sudo     [kernel.kallsyms]  [k] 0xffffffffb82aab25            -      -            
+            |
+            ---0xffffffffb82aab29
+               0xffffffffb82afd84
+               0xffffffffb82b0044
+               0xffffffffb82b0288
+               0xffffffffb82b85cc
+               0xffffffffb7f8b7f3
+               0xffffffffb7f8c858
+               0xffffffffb7f8cdb8
+               0xffffffffb7f8ce25
+               0xffffffffb7e8ec98
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               arch_fork (inlined)
+               _Fork
+               __libc_fork
+               sudo_debug_fork_v1
+               0x56f37673ca11
+               0x56f376743596
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     9.20%  sudo     [kernel.kallsyms]  [k] 0xffffffffb833c72a            -      -            
+            |
+            ---0xffffffffb833c731
+               0xffffffffb833cb37
+               0xffffffffb833de7f
+               0xffffffffb833e037
+               0xffffffffb83516f8
+               0xffffffffb7f89a53
+               0xffffffffb7f89bc1
+               0xffffffffb843e5b3
+               0xffffffffb84413ad
+               0xffffffffb84e640d
+               0xffffffffb843ec08
+               0xffffffffb843ef81
+               0xffffffffb843f075
+               0xffffffffb8440b5c
+               0xffffffffb8440ebe
+               0xffffffffb7e8e311
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+
+     9.20%  sudo     [kernel.kallsyms]  [k] 0xffffffffb8408238            -      -            
+            |
+            ---0xffffffffb840823e
+               0xffffffffb840b897
+               0xffffffffb840ba08
+               0xffffffffb840c31a
+               0xffffffffb839ceba
+               0xffffffffb84af5d8
+               0xffffffffb84aa44d
+               0xffffffffb84aa853
+               0xffffffffb84aad3b
+               0xffffffffb84ab3fa
+               0xffffffffb8434884
+               0xffffffffb8434d91
+               0xffffffffb8434e39
+               0xffffffffb7e8d7d9
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __write_nocancel
+               __libc_pututline
+               __pututline (inlined)
+               0x56f376748153
+               0x56f37674ef99
+               0x56f37673b85e
+               0x56f376743596
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     9.20%  sudo     [kernel.kallsyms]  [k] 0xffffffffb843615d            -      -            
+            |
+            ---0xffffffffb8436162
+               0xffffffffb8436a8d
+               0xffffffffb842cf8e
+               0xffffffffb7e8f0fc
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __close
+               0x72f6dc0640a4
+               0x72f6db77e7b9
+               0x72f6db78cff5
+               0x56f37673fc71
+               0x56f376743763
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     9.20%  sudo     [kernel.kallsyms]  [k] 0xffffffffb86df11e            -      -            
+            |
+            ---0xffffffffb86df121
+               0xffffffffb86df802
+               0xffffffffb86e0930
+               0xffffffffb86e2853
+               0xffffffffb86e3022
+               0xffffffffb86e4543
+               0xffffffffb866f162
+               0xffffffffb843ef03
+               0xffffffffb843f075
+               0xffffffffb8440b5c
+               0xffffffffb8440ebe
+               0xffffffffb7e8e311
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __execve (inlined)
+               0x56f376750f18
+               0x56f37672b2c3
+               0x56f37673ceed
+               0x56f376743596
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     8.09%  sudo     [kernel.kallsyms]  [k] 0xffffffffb840c40a            -      -            
+            |
+            ---0xffffffffb840c40e
+               0xffffffffb839ba82
+               0xffffffffb8363d0c
+               0xffffffffb83524ae
+               0xffffffffb7f8a08f
+               0xffffffffb7f8bccf
+               0xffffffffb7f8c858
+               0xffffffffb7f8cdb8
+               0xffffffffb7f8ce25
+               0xffffffffb7e8ec98
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               arch_fork (inlined)
+               _Fork
+               __libc_fork
+               sudo_debug_fork_v1
+               0x56f37673ca11
+               0x56f376743596
+               0x56f3767250a0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+
+
+# Samples: 43  of event 'cpu_core/cycles/P'
+# Event count (approx.): 142668064
+#
+# Overhead  Command  Shared Object         Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           IPC   [IPC Coverage]
+# ........  .......  ....................  ............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................  ....................
+#
+    12.66%  php      php                   [.] crc32_pclmul_reflected_batch                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -            
+            |          
+            |--9.46%--_mm_clmulepi64_si128 (inlined)
+            |          crc32_pclmul_reflected_batch
+            |          crc32_pclmul_reflected_batch
+            |          php_crc32_bulk_update
+            |          zif_crc32
+            |          ZEND_DO_ICALL_SPEC_RETVAL_USED_HANDLER (inlined)
+            |          execute_ex
+            |          zend_call_function
+            |          swoole::PHPCoroutine::main_func(void*)
+            |          void std::__invoke_impl<void, void (*&)(void*), void*>(std::__invoke_other, void (*&)(void*), void*&&)
+            |          std::enable_if<std::is_void<void>::value, void>::type std::__invoke_r<void, void (*&)(void*), void*>(void (*&)(void*), void*&&)
+            |          std::_Function_handler<void (void*), void (*)(void*)>::_M_invoke(std::_Any_data const&, void*&&)
+            |          std::function<void (void*)>::operator()(void*) const
+            |          swoole::coroutine::Context::context_func(transfer_t)
+            |          swoole_make_fcontext (inlined)
+            |          
+             --3.20%--_mm_xor_si128 (inlined)
+                       crc32_pclmul_reflected_batch
+                       crc32_pclmul_reflected_batch
+                       php_crc32_bulk_update
+                       zif_crc32
+                       ZEND_DO_ICALL_SPEC_RETVAL_USED_HANDLER (inlined)
+                       execute_ex
+                       zend_execute
+                       zend_execute_script
+                       php_execute_script_ex
+
+     9.47%  php      php                   [.] execute_ex                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                -      -            
+            |          
+            |--3.19%--zend_atomic_bool_load_ex (inlined)
+            |          ZEND_IS_SMALLER_SPEC_TMPVARCV_TMPVARCV_JMPNZ_HANDLER (inlined)
+            |          execute_ex
+            |          zend_execute
+            |          zend_execute_script
+            |          php_execute_script_ex
+            |          
+            |--3.16%--ZEND_DO_FCALL_SPEC_RETVAL_USED_HANDLER (inlined)
+            |          execute_ex
+            |          zend_call_function
+            |          swoole::PHPCoroutine::main_func(void*)
+            |          void std::__invoke_impl<void, void (*&)(void*), void*>(std::__invoke_other, void (*&)(void*), void*&&)
+            |          std::enable_if<std::is_void<void>::value, void>::type std::__invoke_r<void, void (*&)(void*), void*>(void (*&)(void*), void*&&)
+            |          std::_Function_handler<void (void*), void (*)(void*)>::_M_invoke(std::_Any_data const&, void*&&)
+            |          std::function<void (void*)>::operator()(void*) const
+            |          swoole::coroutine::Context::context_func(transfer_t)
+            |          swoole_make_fcontext (inlined)
+            |          
+             --3.13%--i_free_compiled_variables (inlined)
+                       execute_ex
+                       zend_call_function
+                       swoole::PHPCoroutine::main_func(void*)
+                       void std::__invoke_impl<void, void (*&)(void*), void*>(std::__invoke_other, void (*&)(void*), void*&&)
+                       std::enable_if<std::is_void<void>::value, void>::type std::__invoke_r<void, void (*&)(void*), void*>(void (*&)(void*), void*&&)
+                       std::_Function_handler<void (void*), void (*)(void*)>::_M_invoke(std::_Any_data const&, void*&&)
+                       std::function<void (void*)>::operator()(void*) const
+                       swoole::coroutine::Context::context_func(transfer_t)
+                       swoole_make_fcontext (inlined)
+
+     5.82%  php      php                   [.] lex_scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            
+            |
+            ---lex_scan
+               |          
+                --3.03%--zendlex
+                          zendparse
+                          zend_compile
+                          compile_string
+                          _compile_string(_zend_string*, char const*, _zend_compile_position)
+                          zend_eval_stringl
+                          _eval(char const*, char const*)
+                          php_swoole_load_library()
+                          zm_activate_swoole(int, int)
+                          zend_activate_modules
+                          php_request_startup
+                          do_cli
+
+     3.55%  php      php                   [.] read_encoded_value_with_base                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -            
+            |
+            ---read_encoded_value_with_base
+               |          
+                --0.35%--classify_object_over_fdes
+                          __register_frame_info_bases (inlined)
+                          __register_frame_info_bases (inlined)
+                          __register_frame_info
+                          frame_dummy
+                          libc_start_init
+
+     3.21%  php      [kernel.kallsyms]     [k] 0xffffffffb924f909                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb924f90b
+               0xffffffffb925d6f8
+               0xffffffffb925d97d
+               0xffffffffb83703fb
+               0xffffffffb8371157
+               0xffffffffb837124f
+               0xffffffffb83730b0
+               0xffffffffb8373243
+               0xffffffffb8375244
+               0xffffffffb834ecdb
+               0xffffffffb7e8f921
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __munmap
+
+     3.20%  php      php                   [.] ZEND_MOD_SPEC_TMPVARCV_TMPVARCV_HANDLER                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   -      -            
+            |
+            ---ZEND_MOD_SPEC_TMPVARCV_TMPVARCV_HANDLER
+               execute_ex
+               zend_execute
+               zend_execute_script
+               php_execute_script_ex
+
+     3.19%  php      php                   [.] _is_numeric_string_ex                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -            
+            |
+            ---_is_numeric_string_ex
+               is_numeric_string_ex (inlined)
+               is_numeric_string (inlined)
+               zval_get_long_func
+               zval_get_long (inlined)
+               ZEND_CAST_SPEC_VAR_HANDLER
+               execute_ex
+               zend_execute
+               zend_execute_script
+               php_execute_script_ex
+
+     3.18%  php      php                   [.] php_sprintf_appenduint                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            
+            |
+            ---php_sprintf_appenduint
+               php_formatted_print
+               zif_sprintf
+               ZEND_DO_ICALL_SPEC_RETVAL_USED_HANDLER (inlined)
+               execute_ex
+               zend_execute
+               zend_execute_script
+               php_execute_script_ex
+
+     3.18%  php      php                   [.] zif_sprintf                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -            
+            |
+            ---zif_sprintf
+               ZEND_DO_ICALL_SPEC_RETVAL_USED_HANDLER (inlined)
+               execute_ex
+               zend_execute
+               zend_execute_script
+               php_execute_script_ex
+
+     3.17%  php      php                   [.] php_formatted_print                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       -      -            
+            |
+            ---zval_get_long (inlined)
+               php_formatted_print
+               zif_sprintf
+               ZEND_DO_ICALL_SPEC_RETVAL_USED_HANDLER (inlined)
+               execute_ex
+               zend_call_function
+               swoole::PHPCoroutine::main_func(void*)
+               void std::__invoke_impl<void, void (*&)(void*), void*>(std::__invoke_other, void (*&)(void*), void*&&)
+               std::enable_if<std::is_void<void>::value, void>::type std::__invoke_r<void, void (*&)(void*), void*>(void (*&)(void*), void*&&)
+               std::_Function_handler<void (void*), void (*)(void*)>::_M_invoke(std::_Any_data const&, void*&&)
+               std::function<void (void*)>::operator()(void*) const
+               swoole::coroutine::Context::context_func(transfer_t)
+               swoole_make_fcontext (inlined)
+
+     3.14%  php      [kernel.kallsyms]     [k] 0xffffffffb84076d7                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb84076fc
+               0xffffffffb840ba40
+               0xffffffffb840c31a
+               0xffffffffb839ba82
+               0xffffffffb835fefa
+               0xffffffffb837104b
+               0xffffffffb837124f
+               0xffffffffb83730b0
+               0xffffffffb8373243
+               0xffffffffb8375244
+               0xffffffffb834ecdb
+               0xffffffffb7e8f921
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __munmap
+
+     3.11%  php      php                   [.] zif_intdiv                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                -      -            
+            |
+            ---zif_intdiv
+
+     3.10%  php      php                   [.] ZEND_ASSIGN_OP_SPEC_CV_TMPVAR_HANDLER                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -            
+            |
+            ---zend_binary_op (inlined)
+               ZEND_ASSIGN_OP_SPEC_CV_TMPVAR_HANDLER
+
+     3.07%  php      php                   [.] std::_Hash_bytes(void const*, unsigned long, unsigned long)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -            
+            |
+            ---load_bytes (inlined)
+               _Hash_bytes (inlined)
+               std::_Hash_impl::hash(void const*, unsigned long, unsigned long)
+               std::__str_hash_base<char, std::allocator<char>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+               std::__detail::_Hash_code_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, void (*)(_zend_execute_data*, _zval_struct*)>, std::__detail::_Select1st, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::_M_hash_code(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+               std::__detail::_Map_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, void (*)(_zend_execute_data*, _zval_struct*)>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, void (*)(_zend_execute_data*, _zval_struct*)> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+               std::unordered_map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, void (*)(_zend_execute_data*, _zval_struct*), std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, void (*)(_zend_execute_data*, _zval_struct*)> > >::operator[](std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+               zend::ConcurrencyHashMap<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, void (*)(_zend_execute_data*, _zval_struct*)>::set(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, void (* const&)(_zend_execute_data*, _zval_struct*))
+               hook_func(char const*, unsigned long, void (*)(_zend_execute_data*, _zval_struct*), _zend_internal_arg_info*)
+               hook_all_func(unsigned int)
+               swoole::PHPCoroutine::enable_hook(unsigned int)
+               zim_swoole_runtime_enableCoroutine
+               ZEND_DO_FCALL_SPEC_RETVAL_UNUSED_HANDLER (inlined)
+               execute_ex
+               zend_execute
+               zend_execute_script
+               php_execute_script_ex
+
+     2.99%  php      php                   [.] lookup_cv                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 -      -            
+            |
+            ---lookup_cv
+               zend_try_compile_cv (inlined)
+               zend_compile_simple_var
+               zend_compile_var_inner (inlined)
+               zend_compile_var
+               zend_compile_pre_incdec (inlined)
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_array (inlined)
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_assign
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_foreach (inlined)
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_func_decl_ex
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_args (inlined)
+               zend_compile_call_common
+               zend_compile_method_call (inlined)
+               zend_compile_var_inner (inlined)
+               zend_compile_var
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_func_decl_ex
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_class_decl
+               zend_compile_top_stmt
+               zend_compile_top_stmt
+               zend_compile
+               compile_string
+               _compile_string(_zend_string*, char const*, _zend_compile_position)
+               zend_eval_stringl
+               _eval(char const*, char const*)
+               php_swoole_load_library()
+               zm_activate_swoole(int, int)
+               zend_activate_modules
+               php_request_startup
+               do_cli
+
+     2.95%  php      php                   [.] zendparse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 -      -            
+            |
+            ---zendparse
+
+     2.88%  php      php                   [.] _emalloc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            
+            |
+            ---zend_mm_alloc_small (inlined)
+               zend_mm_alloc_heap (inlined)
+               _emalloc
+               zend_string_alloc (inlined)
+               zend_string_init (inlined)
+               lex_scan
+               zendlex
+               zendparse
+               zend_compile
+               compile_string
+               _compile_string(_zend_string*, char const*, _zend_compile_position)
+               zend_eval_stringl
+               _eval(char const*, char const*)
+               php_swoole_load_library()
+               zm_activate_swoole(int, int)
+               zend_activate_modules
+               php_request_startup
+               do_cli
+
+     2.66%  php      [kernel.kallsyms]     [k] 0xffffffffb810d3a5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb810d3a9
+               0xffffffffb8409c11
+               0xffffffffb8402225
+               0xffffffffb840bb1e
+               0xffffffffb840d24d
+               0xffffffffb8347b57
+               0xffffffffb8347f34
+               0xffffffffb83492df
+               0xffffffffb834987a
+               0xffffffffb8349bbd
+               0xffffffffb7f60022
+               0xffffffffb9283dc1
+               0xffffffffb7c00bb7
+               _zend_hash_add_or_update_i (inlined)
+               zend_hash_add_new
+               zend_add_interned_string (inlined)
+               zend_new_interned_string_request
+               zend_new_interned_string_request
+               zval_make_interned_string
+               zend_insert_literal (inlined)
+               zend_add_literal
+               zend_add_literal_string
+               zend_add_const_name_literal
+               zend_compile_const (inlined)
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_args (inlined)
+               zend_compile_call_common
+               zend_compile_ns_call (inlined)
+               zend_compile_call (inlined)
+               zend_compile_var_inner (inlined)
+               zend_compile_var
+               zend_compile_expr_inner (inlined)
+               zend_compile_expr
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_if (inlined)
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_while (inlined)
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_func_decl_ex
+               zend_compile_stmt
+               zend_compile_stmt_list (inlined)
+               zend_compile_stmt
+               zend_compile_class_decl
+               zend_compile_top_stmt
+               zend_compile_top_stmt
+               zend_compile
+               compile_string
+               _compile_string(_zend_string*, char const*, _zend_compile_position)
+               zend_eval_stringl
+               _eval(char const*, char const*)
+               php_swoole_load_library()
+               zm_activate_swoole(int, int)
+               zend_activate_modules
+               php_request_startup
+               do_cli
+
+     2.51%  php      php                   [.] zend_hash_copy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -      -            
+            |
+            ---zend_hash_copy
+               zend_post_startup
+               php_module_startup
+               main
+               libc_start_main_stage2
+
+     2.42%  php      php                   [.] get_stride                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                -      -            
+            |
+            ---get_stride
+
+     2.28%  sudo     [kernel.kallsyms]     [k] 0xffffffffb8826ac4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb8826ac6
+               0xffffffffb8827159
+               0xffffffffb82cecc6
+               0xffffffffb82cf06b
+               0xffffffffb854b7b0
+               0xffffffffb8433d11
+               0xffffffffb8434c11
+               0xffffffffb8434cb9
+               0xffffffffb7e8fad4
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __libc_read (inlined)
+               _IO_new_file_underflow (inlined)
+               _IO_default_uflow
+               _IO_getline_info
+               _IO_fgets
+               0x72f6dc039543
+               pam_sm_open_session
+
+     2.18%  php      [kernel.kallsyms]     [k] 0xffffffffb832b5c9                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb832b5cd
+               0xffffffffb832bdbe
+               0xffffffffb83700a5
+               0xffffffffb8370570
+               0xffffffffb8372483
+               0xffffffffb8372615
+               0xffffffffb8372967
+               0xffffffffb8374623
+               0xffffffffb835052e
+               0xffffffffb830c4a9
+               0xffffffffb834f2c4
+               0xffffffffb7eefec3
+               0xffffffffb7e8f714
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               mmap (inlined)
+
+     2.05%  sudo     libc.so.6             [.] memcpy@@GLIBC_2.14@plt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            
+            |
+            ---memcpy@@GLIBC_2.14@plt
+               memcpy (inlined)
+               __printf_buffer_write
+               __printf_buffer
+               __vsprintf_internal
+               ___sprintf_chk (inlined)
+               pam_modutil_getpwnam
+               0x72f6dbd50c51
+               0x72f6dbd50deb
+               pam_sm_acct_mgmt
+               0x72f6dc064402
+               0x72f6db77e490
+               0x72f6db7ce3ee
+               0x72f6db7c6224
+               0x72f6db7992a2
+               0x56f3767234b0
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     1.93%  sudo     [kernel.kallsyms]     [k] 0xffffffffb9251b4d                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb9251b55
+               0xffffffffb9257e76
+               0xffffffffb8371d00
+               0xffffffffb8372d85
+               0xffffffffb8374623
+               0xffffffffb835052e
+               0xffffffffb830c4a9
+               0xffffffffb834f42d
+               0xffffffffb7eefec3
+               0xffffffffb7e8f714
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __mmap64 (inlined)
+               __mmap64 (inlined)
+               _dl_map_segment (inlined)
+               _dl_map_segments (inlined)
+               _dl_map_object_from_fd
+               _dl_map_object
+               dl_open_worker_begin
+               _dl_catch_exception
+               dl_open_worker
+               _dl_catch_exception
+               _dl_open
+               dlopen_doit
+               _dl_catch_exception
+               _dl_catch_error
+               _dlerror_run
+               dlopen_implementation (inlined)
+               ___dlopen (inlined)
+               0x72f6dc0609d4
+               0x72f6dc0614fb
+               0x72f6dc061e87
+               0x72f6dc062d11
+               0x72f6db77e0d8
+               0x72f6db7ce0f3
+               0x72f6db7c6224
+               0x72f6db7992a2
+               0x56f3767234b0
+
+     1.87%  php      php                   [.] eat_alpha_numeric                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         -      -            
+            |
+            ---eat_alpha_numeric
+               def_load_bio
+               def_load
+               NCONF_load
+               CONF_modules_load_file_ex
+               ossl_config_int
+               ossl_init_config
+               ossl_init_config_ossl_
+               __pthread_once_full
+
+     1.69%  php      php                   [.] getrn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -            
+            |
+            ---getrn
+               OPENSSL_LH_insert
+               err_load_strings
+               ERR_load_strings_const
+               ossl_err_load_PROV_strings
+               ossl_err_load_crypto_strings
+               ossl_init_load_crypto_strings
+               ossl_init_load_crypto_strings_ossl_
+               __pthread_once_full
+
+     1.56%  sudo     [kernel.kallsyms]     [k] 0xffffffffb854b7c6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb854b7c9
+               0xffffffffb8434c11
+               0xffffffffb8434cb9
+               0xffffffffb7e8fad4
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __libc_read (inlined)
+               _IO_new_file_underflow (inlined)
+               _IO_default_uflow
+               0x72f6db7d5e0f
+               0x72f6db780ec0
+               0x72f6db7d34de
+               0x72f6db77ed36
+               0x56f37672402d
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               0x56f3767261c4
+
+     1.33%  sudo     [kernel.kallsyms]     [k] 0xffffffffb80cd08a                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb80cd08c
+               0xffffffffb8463c88
+               0xffffffffb8463d43
+               0xffffffffb854c217
+               0xffffffffb8372a97
+               0xffffffffb8374623
+               0xffffffffb835052e
+               0xffffffffb830c4a9
+               0xffffffffb834f42d
+               0xffffffffb7eefec3
+               0xffffffffb7e8f714
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __mmap64 (inlined)
+               __mmap64 (inlined)
+               _dl_map_segment (inlined)
+               _dl_map_segments (inlined)
+               _dl_map_object_from_fd
+               _dl_map_object
+               dl_open_worker_begin
+               _dl_catch_exception
+               dl_open_worker
+               _dl_catch_exception
+               _dl_open
+               dlopen_doit
+               _dl_catch_exception
+               _dl_catch_error
+               _dlerror_run
+               dlopen_implementation (inlined)
+               ___dlopen (inlined)
+               sudo_dso_load_v1
+               0x56f3767390d0
+               0x56f376739ad8
+               0x56f37673e4f0
+
+     1.27%  php      [kernel.kallsyms]     [k] 0xffffffffb927f84e                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb927f851
+               alloc_slot
+
+     1.00%  php      php                   [.] _estrdup                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            
+            |
+            ---_estrdup
+
+     0.98%  sudo     [kernel.kallsyms]     [k] 0xffffffffb833fa0d                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb833fa16
+               0xffffffffb8340315
+               0xffffffffb8340ac3
+               0xffffffffb8341230
+               0xffffffffb8341496
+               0xffffffffb83415bf
+               0xffffffffb837171a
+               0xffffffffb8372293
+               0xffffffffb837312f
+               0xffffffffb8373243
+               0xffffffffb8375244
+               0xffffffffb834ecdb
+               0xffffffffb7e8f921
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __munmap (inlined)
+               _dl_unload_cache
+               dl_main
+               _dl_sysdep_start
+               _dl_start_final (inlined)
+               _dl_start
+               _start
+
+     0.69%  php      php                   [.] void std::__detail::_Insert_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_insert_range<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const*, std::__detail::_AllocNode<std::allocator<std::__detail::_Hash_node<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, true> > > >(std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const*, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const*, std::__detail::_AllocNode<std::allocator<std::__detail::_Hash_node<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, true> > > const&, std::integral_constant<bool, true>)  -      -            
+            |
+            ---void std::__detail::_Insert_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_insert_range<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::
+               void std::__detail::_Insert_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::insert<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_trai
+               std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_Hashtable<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std
+               std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_Hashtable(std::initializer_list<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::
+               std::unordered_map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >::unordered_map(std::initializer_list<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >, unsigned long, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&, std::allocator<s
+               __static_initialization_and_destruction_0()
+
+     0.68%  sudo     [kernel.kallsyms]     [k] 0xffffffffb82e2762                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb82e2765
+               0xffffffffb82e2f7f
+               0xffffffffb82e30cf
+               0xffffffffb82e31b9
+               0xffffffffb82e4b9f
+               0xffffffffb8343532
+               0xffffffffb83438b1
+               0xffffffffb834408a
+               0xffffffffb834925e
+               0xffffffffb834987a
+               0xffffffffb8349bbd
+               0xffffffffb7f60022
+               0xffffffffb9283dc1
+               0xffffffffb7c00bb7
+               elf_machine_rela_relative (inlined)
+               elf_dynamic_do_Rela (inlined)
+               _dl_relocate_object
+               dl_main
+               _dl_sysdep_start
+               _dl_start_final (inlined)
+               _dl_start
+               _start
+
+     0.35%  php      php                   [.] classify_object_over_fdes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 -      -            
+            |
+            ---classify_object_over_fdes
+
+     0.35%  sudo     [kernel.kallsyms]     [k] 0xffffffffb9252c40                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            
+            |
+            ---0xffffffffb9252c49
+               0xffffffffb9259019
+               0xffffffffb925cf32
+               0xffffffffb925d60f
+               0xffffffffb925d97d
+               0xffffffffb83703fb
+               0xffffffffb83711a0
+               0xffffffffb837133a
+               0xffffffffb83718f7
+               0xffffffffb837289d
+               0xffffffffb8374623
+               0xffffffffb835052e
+               0xffffffffb830c4a9
+               0xffffffffb834f42d
+               0xffffffffb7eefec3
+               0xffffffffb7e8f714
+               0xffffffffb927bb29
+               0xffffffffb7c0012b
+               __mmap64 (inlined)
+               __mmap64 (inlined)
+               _dl_map_segments (inlined)
+               _dl_map_object_from_fd
+               _dl_map_object
+               openaux
+               _dl_catch_exception
+               _dl_map_object_deps
+               dl_main
+               _dl_sysdep_start
+               _dl_start_final (inlined)
+               _dl_start
+               _start
+
+     0.35%  sudo     ld-linux-x86-64.so.2  [.] _dl_lookup_symbol_x                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       -      -            
+            |
+            ---_dl_new_hash (inlined)
+               _dl_lookup_symbol_x
+               dl_vdso_vsym (inlined)
+               setup_vdso_pointers (inlined)
+               dl_main
+               _dl_sysdep_start
+               _dl_start_final (inlined)
+               _dl_start
+               _start
+
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
