@@ -1,4 +1,4 @@
-# Benchmark de voz: string versus ByteBuffer
+# Benchmark de voz: string, ByteBuffer e Go best
 
 Este benchmark simula chamadas independentes que recebem chunks PCM16, acumulam
 os bytes e retiram frames completos continuamente. Cada chamada mantém sua
@@ -15,7 +15,7 @@ chamada fora do intervalo medido.
 - `voice_benchmark.php`: PHP com coroutines persistentes do Swoole e a classe
   `ByteBuffer` já fornecida pelo psampler.
 - `voice_benchmark.go`: Go com goroutines persistentes e um ByteBuffer circular
-  implementado no próprio arquivo.
+  implementado no próprio arquivo, além do modo otimizado `best`.
 
 Nenhum dos scripts compila, carrega ou modifica a extensão. O script PHP espera
 que Swoole e a classe `ByteBuffer` já estejam disponíveis no binário PHP usado.
@@ -66,7 +66,7 @@ As opções têm os mesmos nomes e significados nos dois programas:
 | Opção | Padrão | Significado |
 |---|---:|---|
 | `--calls` | `50` | Quantidade de chamadas independentes. Aceita, por exemplo, 1, 10, 25, 50 e 100. |
-| `--mode` | `string` | `string` ou `bytebuffer`. |
+| `--mode` | `string` | `string` ou `bytebuffer`; Go também aceita `best`. |
 | `--runtime` | `throughput` | `throughput` ou `realtime`. |
 | `--frame` | `1920` | Bytes por frame PCM16. Deve ser par. |
 | `--chunk` | `1024` | Tamanho fixo, em bytes, ou `variable`. Deve ser par para PCM16. |
@@ -172,12 +172,27 @@ de leitura e escrita, dados válidos, crescimento geométrico e `Append`, `Has` 
 `Pop`. Cada `Pop` copia apenas o frame retornado; o restante permanece no buffer
 circular.
 
+O modo Go `best` processa frames completos diretamente nos slices de bytes de
+entrada, sem copiá-los. Frames que atravessam chunks são montados em um único
+buffer reutilizável do tamanho de um frame. Não há alocações por tick ou frame,
+nem cópias do restante após consumir um frame. Os chunks da fixture são
+convertidos de string para `[]byte` uma única vez antes da barreira de início;
+essa memória está incluída em `memory_initial_heap_alloc_bytes`. O checksum
+continua sendo calculado sobre cada frame, e os bytes restantes são validados.
+
+Esse modo usa as operações naturais do Go, sem forçar as cópias de `substr()`
+do PHP. Para executá-lo:
+
+```bash
+./voice_benchmark_go --calls=50 --mode=best --runtime=throughput --frame=1920 --chunk=variable --ptime=20 --duration=60
+```
+
 `processFrame` calcula CRC32 sobre todo o frame e combina esse valor em um
 checksum determinístico por chamada. O mesmo algoritmo é usado em PHP e Go.
 
 ## Exemplos de comparação
 
-Use exatamente os mesmos argumentos para os dois modos da mesma linguagem:
+Use exatamente os mesmos argumentos para os modos da mesma linguagem:
 
 ```bash
 ./php voice_benchmark.php --calls=50 --mode=string     --runtime=throughput --frame=1920 --chunk=1024 --ptime=20 --duration=60
@@ -187,6 +202,7 @@ Use exatamente os mesmos argumentos para os dois modos da mesma linguagem:
 ```bash
 ./voice_benchmark_go --calls=50 --mode=string     --runtime=throughput --frame=1920 --chunk=1024 --ptime=20 --duration=60
 ./voice_benchmark_go --calls=50 --mode=bytebuffer --runtime=throughput --frame=1920 --chunk=1024 --ptime=20 --duration=60
+./voice_benchmark_go --calls=50 --mode=best       --runtime=throughput --frame=1920 --chunk=1024 --ptime=20 --duration=60
 ```
 
 Para real-time com fragmentação variável:
@@ -252,8 +268,8 @@ No throughput, esses três campos aparecem como `n/a`.
 
 ## O que deve coincidir
 
-Para a mesma linguagem e configuração, compare `string` com `bytebuffer`. Estes
-campos precisam ser idênticos:
+Para a mesma linguagem e configuração, compare `string` com `bytebuffer` e,
+no Go, com `best`. Estes campos precisam ser idênticos:
 
 - `ticks_expected`;
 - `ticks_processed`;

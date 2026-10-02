@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	checksumModulus          uint64 = 2147483647
-	checksumMultiplier       uint64 = 65599
-	byteBufferInitialCapacity       = 4096
+	checksumModulus           uint64 = 2147483647
+	checksumMultiplier        uint64 = 65599
+	byteBufferInitialCapacity        = 4096
 )
 
 var variableChunkSizes = []int{320, 500, 700, 320, 1000, 160, 1024, 960, 300, 1920}
@@ -142,6 +142,37 @@ func updateBytesChecksum(checksum uint64, frame []byte) uint64 {
 	return combineChecksum(checksum, uint64(crc32.ChecksumIEEE(frame)))
 }
 
+// frameBuffer only buffers incomplete frames. Complete frames in an incoming
+// chunk are processed in place; fragmented frames use the same scratch space.
+// Consume does not allocate, and never modifies the incoming PCM bytes.
+type frameBuffer struct {
+	frame   []byte
+	pending int
+}
+
+func (b *frameBuffer) Consume(pcm []byte, checksum uint64) (uint64, uint64) {
+	var frames uint64
+	if b.pending > 0 {
+		n := copy(b.frame[b.pending:], pcm)
+		b.pending += n
+		pcm = pcm[n:]
+		if b.pending < len(b.frame) {
+			return checksum, 0
+		}
+		checksum = updateBytesChecksum(checksum, b.frame)
+		frames++
+		b.pending = 0
+	}
+
+	for len(pcm) >= len(b.frame) {
+		checksum = updateBytesChecksum(checksum, pcm[:len(b.frame)])
+		frames++
+		pcm = pcm[len(b.frame):]
+	}
+	b.pending = copy(b.frame, pcm)
+	return checksum, frames
+}
+
 // makePCMChunks uses the same formula as voice_benchmark.php.
 func makePCMChunks(callID int, chunkSizes []int) []string {
 	chunks := make([]string, len(chunkSizes))
@@ -157,18 +188,18 @@ func makePCMChunks(callID int, chunkSizes []int) []string {
 }
 
 type CallResult struct {
-	CallID          int
-	End             time.Time
-	Ticks           uint64
-	InputBytes      uint64
-	ProcessedBytes  uint64
-	Frames          uint64
-	Checksum        uint64
-	RemainingBytes  uint64
-	RemainingData   []byte
-	DeadlineMisses  uint64
-	DelayTotal      time.Duration
-	DelayMax        time.Duration
+	CallID         int
+	End            time.Time
+	Ticks          uint64
+	InputBytes     uint64
+	ProcessedBytes uint64
+	Frames         uint64
+	Checksum       uint64
+	RemainingBytes uint64
+	RemainingData  []byte
+	DeadlineMisses uint64
+	DelayTotal     time.Duration
+	DelayMax       time.Duration
 }
 
 type workerConfig struct {
@@ -191,8 +222,18 @@ func runCall(
 	// Allocate each call's independent accumulator before the start barrier.
 	accumulator := ""
 	var buffer *ByteBuffer
+	var bestBuffer frameBuffer
+	var byteChunks [][]byte
 	if config.mode == "bytebuffer" {
 		buffer = NewByteBuffer(byteBufferInitialCapacity)
+	} else if config.mode == "best" {
+		bestBuffer.frame = make([]byte, config.frameBytes)
+		// The fixture uses strings for the legacy modes. Convert once before
+		// the barrier so best consumes native byte slices on every tick.
+		byteChunks = make([][]byte, len(chunks))
+		for i, chunk := range chunks {
+			byteChunks[i] = []byte(chunk)
+		}
 	}
 
 	ready <- struct{}{}
@@ -221,7 +262,8 @@ func runCall(
 			}
 		}
 
-		pcm := chunks[tick%len(chunks)]
+		chunkIndex := tick % len(chunks)
+		pcm := chunks[chunkIndex]
 		result.InputBytes += uint64(len(pcm))
 
 		if config.mode == "string" {
@@ -237,6 +279,11 @@ func runCall(
 				result.Frames++
 				result.ProcessedBytes += uint64(config.frameBytes)
 			}
+		} else if config.mode == "best" {
+			var frames uint64
+			result.Checksum, frames = bestBuffer.Consume(byteChunks[chunkIndex], result.Checksum)
+			result.Frames += frames
+			result.ProcessedBytes += frames * uint64(config.frameBytes)
 		} else {
 			buffer.Append(pcm)
 
@@ -258,6 +305,10 @@ func runCall(
 	if config.mode == "string" {
 		result.RemainingBytes = uint64(len(accumulator))
 		result.RemainingData = []byte(accumulator)
+	} else if config.mode == "best" {
+		result.RemainingBytes = uint64(bestBuffer.pending)
+		// Ownership of the per-call scratch buffer can pass to the result.
+		result.RemainingData = bestBuffer.frame[:bestBuffer.pending:bestBuffer.pending]
 	} else {
 		result.RemainingBytes = uint64(buffer.Len())
 		result.RemainingData = buffer.Snapshot()
@@ -393,7 +444,7 @@ func fatalf(format string, args ...any) {
 
 func main() {
 	calls := flag.Int("calls", 50, "number of independent calls")
-	mode := flag.String("mode", "string", "string or bytebuffer")
+	mode := flag.String("mode", "string", "string, bytebuffer or best (Go-native frame processing)")
 	runtimeMode := flag.String("runtime", "throughput", "throughput or realtime")
 	frameBytes := flag.Int("frame", 1920, "PCM16 frame size in bytes")
 	chunkOption := flag.String("chunk", "1024", "fixed chunk bytes or variable")
@@ -408,8 +459,8 @@ func main() {
 	if *calls < 1 {
 		fatalf("--calls must be a positive integer")
 	}
-	if *mode != "string" && *mode != "bytebuffer" {
-		fatalf("--mode must be string or bytebuffer")
+	if *mode != "string" && *mode != "bytebuffer" && *mode != "best" {
+		fatalf("--mode must be string, bytebuffer or best")
 	}
 	if *runtimeMode != "throughput" && *runtimeMode != "realtime" {
 		fatalf("--runtime must be throughput or realtime")

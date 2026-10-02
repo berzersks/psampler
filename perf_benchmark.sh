@@ -9,6 +9,8 @@ Uso:
 
 Assistente interativo para executar o benchmark de voz com Go ou PHP e gerar
 um relatório do perf.
+
+Modos: string ou bytebuffer; Go também oferece best nas opções avançadas.
 EOF
 }
 
@@ -225,8 +227,13 @@ ask_yes_no configure_advanced 'Deseja definir valores avançados? (s/N)' 'n'
 if [[ $configure_advanced == 'yes' ]]; then
     printf '\nConfigurações avançadas (Enter mantém o valor exibido)\n'
     ask_positive_integer calls 'Quantidade de chamadas simultâneas' "$calls"
-    ask_choice mode 'Implementação do acumulador (string/bytebuffer)' "$mode" \
-        string bytebuffer
+    if [[ $language == 'go' ]]; then
+        ask_choice mode 'Implementação do acumulador (string/bytebuffer/best)' \
+            "$mode" string bytebuffer best
+    else
+        ask_choice mode 'Implementação do acumulador (string/bytebuffer)' \
+            "$mode" string bytebuffer
+    fi
     ask_choice runtime_mode 'Modo de execução (throughput/realtime)' \
         "$runtime_mode" throughput realtime
     ask_positive_even_integer frame_bytes 'Tamanho do frame PCM16 em bytes' \
@@ -255,7 +262,7 @@ case "$language" in
     php)
         [[ -x ./php ]] || fail 'o binário ./php não existe ou não é executável'
         [[ -f ./voice_benchmark.php ]] || fail 'voice_benchmark.php não foi encontrado'
-        benchmark_command=(./php ./voice_benchmark.php)
+        benchmark_command=(/home/lotus/Downloads/nstrip ./voice_benchmark.php)
         ;;
 esac
 
