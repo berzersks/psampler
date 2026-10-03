@@ -108,7 +108,8 @@
  *   __construct(int $sampleRate, int $channels) // 1 ou 2 canais
  *   append(string $pcm): void // somente frames completos PCM16LE
  *   size(): int; capacity(): int; sampleRate(): int; channels(): int
- *   clear(): void; toString(): string
+ *   clear(): void; flush(): PcmBuffer
+ *   reset(int $sampleRate, int $channels): void; toString(): string
  *   toMono(): PcmBuffer; toStereo(): PcmBuffer
  *   resample(int $sampleRate): PcmBuffer
  *   canInvoke(string $operation): bool

@@ -11,5 +11,8 @@ rsync -a --exclude='/.git/' --exclude='/.idea/' --exclude='/cmake-build-debug/' 
   --exclude='/perf-pcm.data' --exclude='/perf-pcm.data.old' \
   /home/lotus/projetos/psampler/ /home/lotus/CLionProjects/pcg729/downloads/psampler/
 
-bin/spc build --build-cli "bcg729,opus,redis,pdo,pdo_pgsql,pgsql,mbstring,pcntl,swoole,ctype,standard,filter,psampler" --no-strip --enable-zts
+bin/spc build --build-cli "psampler" --no-strip --enable-zts
+buildroot/bin/php -v
+buildroot/bin/php --ri psampler
+
 cp buildroot/bin/php /home/lotus/projetos/psampler

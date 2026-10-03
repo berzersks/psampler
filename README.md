@@ -4,6 +4,35 @@ Extensão PHP para resampling de áudio PCM 16-bit com qualidade similar ao FFmp
 
 Versão atual: **0.6.1**.
 
+## API pública
+
+A extensão registra cinco classes e três funções globais:
+
+```php
+final class PcmBuffer {
+    public function __construct(int $sampleRate, int $channels);
+    public function append(string $pcm): void;
+    public function size(): int;
+    public function capacity(): int;
+    public function sampleRate(): int;
+    public function channels(): int;
+    public function clear(): void;
+    public function flush(): PcmBuffer;
+    public function reset(int $sampleRate, int $channels): void;
+    public function toString(): string;
+    public function toMono(): PcmBuffer;
+    public function toStereo(): PcmBuffer;
+    public function resample(int $sampleRate): PcmBuffer;
+    public function canInvoke(string $operation): bool;
+    public function invoke(string $operation, mixed ...$args): mixed;
+}
+```
+
+As demais classes são `Resampler`, `LPCM`, `ByteBuffer` e `PCMAnalyzer`. As
+funções globais são `interleavePcmStereo()`, `monoToStereo()` e
+`stereoToMono()`. O inventário completo, incluindo as assinaturas de todos os
+métodos, pode ser consultado com `php --ri psampler`.
+
 ## PCM nativo: PcmBuffer e stereoToMono
 
 `stereoToMono(string $pcmData): string` converte PCM16LE stereo intercalado
@@ -19,21 +48,22 @@ $output = $pcm->toString();
 ```
 
 `PcmBuffer` guarda PCM16LE contíguo e metadados nativos. Oferece `append()`,
-`size()`, `capacity()`, `sampleRate()`, `channels()`, `clear()`, `toString()`,
-`toMono()`, `toStereo()`, `resample()`, `canInvoke()` e `invoke()`.
+`size()`, `capacity()`, `sampleRate()`, `channels()`, `clear()`, `flush()`,
+`reset()`, `toString()`, `toMono()`, `toStereo()`, `resample()`, `canInvoke()`
+e `invoke()`.
 Transformações mutam e retornam o mesmo objeto, sem strings PHP intermediárias.
 Aceita taxas positivas que caibam em `uint32_t`/inteiro PHP e canais 1 ou 2;
 append exige frames completos. É final, não clonável e não serializável.
 `ByteBuffer` mantém sua API e semântica de fila genérica de bytes.
 
-Resampling usa o DSP existente com estado novo por chamada/canal e sem flush
-da cauda do filtro; blocos curtos podem produzir vazio. `invoke()` despacha
-handlers C registrados por extensões em startup; operações ausentes geram
-`ValueError`, e não há codecs registrados nesta etapa.
+Resampling usa o DSP existente com estado contínuo por stream e canal; blocos
+curtos podem produzir vazio. `flush()` emite uma vez a cauda final do filtro,
+e `reset()` inicia uma nova stream com taxa e número de canais informados.
+`invoke()` despacha handlers C registrados por extensões em startup; operações
+ausentes geram `ValueError`, e não há codecs registrados nesta etapa.
 
-O contrato de ownership, lifecycle/ZTS, API PHP/C e validações locais pendentes
-está em [docs/pcm-buffer.md](docs/pcm-buffer.md). Os novos PHPTs foram escritos,
-**sem execução**; nenhum build ou benchmark foi executado nesta implementação.
+O contrato de ownership, lifecycle/ZTS e API PHP/C está em
+[docs/pcm-buffer.md](docs/pcm-buffer.md).
 
 ## PCMAnalyzer
 

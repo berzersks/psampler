@@ -1074,7 +1074,8 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "PcmBuffer",
         "__construct(int sampleRate, int channels), append(string pcm): void, "
         "size(): int, capacity(): int, sampleRate(): int, channels(): int, "
-        "clear(): void, toString(): string, toMono(): PcmBuffer, "
+        "clear(): void, flush(): PcmBuffer, "
+        "reset(int sampleRate, int channels): void, toString(): string, toMono(): PcmBuffer, "
         "toStereo(): PcmBuffer, resample(int sampleRate): PcmBuffer, "
         "canInvoke(string operation): bool, invoke(string operation, mixed ...args): mixed");
     php_info_print_table_row(2, "PCMAnalyzer",
