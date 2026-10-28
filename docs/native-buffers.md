@@ -1,21 +1,9 @@
 # Buffers binários nativos — ABI v1
 
-Implementação **escrita e revisada estaticamente, sem compilação ou execução**.
-O suporte real ao `Swoole\Buffer` ainda depende da API pública e da ponte
-descritas abaixo. A release `pcg729 v1.1.3` sozinha não é suficiente.
-
-## Arquivos desta alteração
-
-Modificados: `byte_buffer.c`, `byte_buffer.h`, `psampler.c`, `php_psampler.h`,
-`config.m4` e `README.md`.
-
-Criados: `binary_buffer.c`, `binary_buffer.h`, `psampler_binary.h`,
-`docs/native-buffers.md`, `docs/swoole-buffer-c-api-v1.h`,
-`tests/native_binary_provider/config.m4`,
-`tests/native_binary_provider/psampler_binary_test.c`,
-`tests/native_binary_provider/README.md` e os onze arquivos PHPT relacionados
-na tabela de testes ao fim deste documento. São seis modificados e dezenove
-criados. Os arquivos de PCM e os PHPTs anteriores não foram alterados.
+A própria extensão psampler inclui uma ponte opcional para `Swoole\Buffer`.
+A ABI binária v1 e o registry existentes continuam sendo o caminho de leitura.
+Não há módulo de produção adicional. Esta integração foi revisada estaticamente;
+os PHPTs integrados e o benchmark aguardam o novo binário.
 
 ## Escopo e API PHP
 
@@ -45,8 +33,8 @@ para um objeto cuja construção foi ignorada; o estado é validado na aquisiç�
 Não indica que o objeto esteja inicializado ou livre de um receive pendente.
 Classes PHP com nomes semelhantes não são produtores nativos.
 
-`appendBuffer()` aceita uma origem registrada, inicialmente o próprio
-`ByteBuffer` (outro objeto). Valida offset e comprimento em bytes; `null`
+`appendBuffer()` aceita uma origem registrada: `ByteBuffer` (outro objeto) ou
+`Swoole\Buffer` quando a ponte encontra a ABI compatível no startup. Valida offset e comprimento em bytes; `null`
 significa todos os bytes restantes. O offset no fim e comprimento zero são
 válidos. Zero bytes não alocam nem aumentam a capacidade. Valores negativos,
 faixas fora do comprimento válido, origem não registrada e autoappend geram
@@ -195,106 +183,158 @@ fica na stack; guards e storage pertencem ao objeto/request. Objetos não podem
 ser compartilhados entre threads sem um protocolo externo compatível.
 O guard booleano de leitura não substitui sincronização entre threads.
 
-## O que falta no Swoole/pcg729
+## Ponte incorporada à psampler
 
-Foi examinado o [patch publicado na release v1.1.3](https://github.com/spechshop/pcg729/blob/v1.1.3/src/globals/patch/swoole_native_buffer_v630rc1.patch),
-inclusive `ext-src/php_swoole_buffer.h`, `ext-src/swoole_buffer.cc` e o caminho
-`recvfromInto()`. Esse header define um objeto privado C++, sem ABI C pública
-versionada de empréstimo. O flag `receiving` protege receive pendente; falta
-um guard de leitura nativa e seu respeito em todos os escritores. Não é seguro
-consumir o layout privado diretamente. Nenhum arquivo do pcg729 foi alterado.
+`swoole_bridge.c` é compilado em ambos os ramos de `config.m4`, estático e
+compartilhado, dentro do único módulo psampler. `MINIT(psampler)` cria o registry,
+registra ByteBuffer e chama `psampler_swoole_bridge_init()` uma única vez.
+`ZEND_MOD_OPTIONAL("swoole")` ordena o MINIT depois do Swoole, se presente,
+e o MSHUTDOWN na ordem inversa. O startup Zend carrega os módulos dos INIs
+antes de ordenar seus MINITs; a ordem dos INIs não precisa determinar a ordem
+de inicialização. Não há registro tardio em RINIT ou em appendBuffer.
 
-A proposta exata para o produtor está em
-[swoole-buffer-c-api-v1.h](swoole-buffer-c-api-v1.h). É uma **especificação
-proposta**, não um header que já existe no Swoole e não é instalado pelo build
-da psampler. O produtor deverá:
+O adaptador verifica módulo iniciado, classe interna exata pertencente ao módulo
+Swoole, função de versão igual a 1, getter não NULL, versão/tamanho exatos da
+tabela, identidade da classe e ambos os callbacks. Só então registra o produtor.
+No MSHUTDOWN remove seu próprio produtor antes de zerar o ponteiro da tabela
+e antes de destruir o registry. Não altera nem substitui produtores existentes.
+`php --ri psampler` informa o estado em `Swoole Buffer bridge`, inclusive o motivo
+de indisponibilidade, sem emitir warning ou falhar o carregamento.
 
-1. Exportar `swoole_buffer_get_read_api(uint32_t version, size_t expected_size)`
-   com linkage C e visibilidade pública. Retornar NULL para versão/tamanho
-   incompatíveis e uma tabela imutável somente após seu MINIT.
-2. Publicar na tabela versão, tamanho, classe exata e callbacks `acquire` e
-   `release`, sem expor o layout C++. A view pública contém origem, ponteiro
-   const, length, capacity e token opaco, emprestados.
-3. Em acquire, validar classe/handlers antes do cast privado, construção,
-   `length <= capacity <= ZEND_LONG_MAX` e nenhuma leitura/recepção pendente;
-   ativar guard antes de entregar os bytes. Nunca retornar o byte privado de
-   detecção de overflow como parte do comprimento válido.
-4. Em clear, construtor e qualquer escritor futuro, recusar empréstimo ativo.
-   Em `recvfromInto()`, recusar **antes** de zerar length, criar o receive guard
-   ou suspender. Enquanto `receiving` estiver ativo, recusar acquire, inclusive
-   durante timeout/cancelamento/atribuição dos metadados do peer.
-5. Manter acquire/release sem suspensão/chamadas PHP; release não falha.
-   Preservar os guards existentes de receive e a limpeza em todos os caminhos.
-   O caller mantém o objeto vivo, e release deve aceitar o token adquirido.
-6. Instalar o novo header público e exportar o símbolo também em builds com
-   visibilidade oculta/Windows. O Swoole não inclui headers nem linka psampler.
+Sem Swoole, sem Buffer, sem símbolos, com ABI incompatível ou com a ponte
+desabilitada, ByteBuffer continua funcionando e objetos não registrados retornam
+false em supportsNativeBuffer. appendBuffer rejeita esses objetos com ValueError.
+O teste positivo exige o produtor compatível; não dá SKIP só porque a ponte
+falhou, evitando esconder uma regressão de link/startup.
 
-## Ponte opcional, ainda não implementada
+### Header e assinaturas conferidos
 
-Uma extensão pequena `psampler_swoole` poderá depender obrigatoriamente de
-**ambos**, enquanto psampler e Swoole permanecem independentes entre si:
+O header interno [swoole_buffer_c_api.h](../swoole_buffer_c_api.h) é uma cópia
+exata do header público do patch versionado
+`src/globals/patch/swoole_native_buffer_v630rc1.patch` de `spechshop/pcg729`
+(revisão que contém a ABI v1 e os reparos de lifecycle). O caminho antigo
+[swoole-buffer-c-api-v1.h](swoole-buffer-c-api-v1.h) apenas inclui essa cópia;
+não é mais uma proposta. Não é necessário ter Swoole instalado para compilar
+psampler e nenhum header privado C++ é incluído. Esse header não é instalado
+como uma API de propriedade da psampler.
 
-```text
-psampler         swoole
-    \             /
-       psampler_swoole
+Foram conferidos no patch e em `docs/swoole-buffer-c-api.md` do produtor:
+
+```c
+uint32_t swoole_buffer_read_api_version(void);
+const swoole_buffer_read_api_v1 *swoole_buffer_get_read_api(
+    uint32_t api_version, size_t expected_struct_size);
+zend_result swoole_buffer_with_read_view_v1(zval *source,
+    size_t offset, size_t length, swoole_buffer_read_handler_v1 handler, void *context);
 ```
 
-Em seu MINIT, a ponte obtém e valida a tabela pública do Swoole, verifica a
-ABI da psampler e registra um `psampler_binary_provider` para a classe exata
-recebida do Swoole. Depende de `ZEND_MOD_REQUIRED("psampler")` e
-`ZEND_MOD_REQUIRED("swoole")`, sem dependências reversas ou circulares.
-Carregue as duas bibliotecas antes da ponte nos `.ini` para resolver símbolos;
-a ordem relativa entre psampler e Swoole é indiferente. As dependências Zend
-resolvem a ordem de MINIT e o shutdown inverso também em builds estáticos.
-No MSHUTDOWN da ponte, remova o provider antes de descarregar seu código.
+A tabela tem, nesta ordem, `uint32_t api_version`, `size_t struct_size`,
+`zend_class_entry *buffer_ce`, `acquire(zend_object *, swoole_buffer_read_view_v1 *)`
+e `release(zend_object *, void *)`. A view tem origem, ponteiro const,
+length, capacity e token. O getter exige versão e tamanho exatos e só publica
+a tabela durante a vida do módulo. `with_read_view_v1()` é o wrapper de leitura
+com pin/validação/cleanup do Swoole; `SIZE_MAX` seleciona os bytes restantes.
+A ponte usa os callbacks de baixo nível porque `psampler_binary_with_view()`
+já fornece pin, validação, callback síncrono e cleanup para o consumidor.
+Não é necessário aninhar dois wrappers nem alocar descritores por pacote.
 
-Acquire da ponte usa `swoole_buffer_read_view_v1` local, chama a função pública
-e, no sucesso, mapeia `source`, `data`, `length`, `capacity` e `token` para a
-view psampler, com segunda região vazia. Release repassa o objeto original e
-o token à função pública. Não exige alocação por pacote ou string. A ponte
-deve preservar a identidade retornada pelo produtor para a validação central
-e liberar qualquer aquisição bem-sucedida mesmo se a metadata for inválida.
-O ponteiro da tabela fica imutável no processo após MINIT, sem lookup de
-símbolos ou gravação global por pacote.
+Acquire usa um descritor local na stack e transfere os campos para o primeiro
+span; o segundo fica NULL/zero. Preserva a identidade retornada pelo produtor,
+mesmo se a metadata estiver inválida, para o dispatcher rejeitar e liberar.
+Release repassa a origem original e o token opaco. Há uma cópia direta dos bytes
+selecionados para o ring do destino, além da cópia dos bytes antigos quando
+há crescimento. Não há payload temporário, `zend_string`, `toString()`, lookup
+de símbolos ou alocação do adaptador por pacote. A consulta ao registry que já
+existia no dispatcher continua existindo, uma vez por appendBuffer.
 
-Não foi criado adaptador que simule essa API ausente. Até o produtor e a ponte
-serem implementados, `supportsNativeBuffer($swooleBuffer)` retorna falso e
-`appendBuffer($swooleBuffer)` lança `ValueError` sem tentar conversão.
+### Resolução estática e dinâmica
 
-## Testes preparados e validação pendente
-
-Todos os testes abaixo estão **escritos, não executados**:
-
-| PHPT | Cobertura / dependência |
+| Build | Resolução no startup |
 | --- | --- |
-| `byte_buffer_native.phpt` | Vazio, NUL, 160/1024/2048 bytes, slices, argumentos nomeados e reutilização |
-| `byte_buffer_native_ring.phpt` | Origem em duas regiões, destino com wraparound, limite exato, crescimento e FIFO repetido |
-| `byte_buffer_native_errors.phpt` | Tipos/faixas, PHP_INT_MAX, autoappend, PcmBuffer recusado e ausência de alteração parcial |
-| `byte_buffer_native_lifecycle.phpt` | Destruição com WeakReference, reutilização e cópia independente |
-| `byte_buffer_native_no_swoole.phpt` | Carregamento sem Swoole, classe PHP impostora e rejeição sem chamar toString |
-| `byte_buffer_native_swoole_unavailable.phpt` | Swoole com Buffer e sem provider público, incluindo o patch atual |
-| `binary_provider_read.phpt` | Fixture C: leitura direta, regiões NULL vazias, checksum, dois spans e remoção do único dono durante leitura |
-| `binary_provider_validation.phpt` | Fixture C: objetos não inicializados, metadata inconsistente/overflow/origem errada, falhas sem exceção, guard liberado e rejeição antes de copiar |
-| `binary_provider_guards.phpt` | Fixture C: mutações/reentrada bloqueadas, leituras permitidas, exceções e destruição |
-| `byte_buffer_native_swoole_future.phpt` | **Futuro**: UDP real, datagrama vazio, reutilização, capacidade exata e overflow |
-| `binary_provider_swoole_guards_future.phpt` | **Futuro + fixture**: receive excluído durante leitura, leitura excluída durante receive e limpeza no cancelamento |
+| PHP ELF com as duas extensões estáticas, GCC/Clang | Referências indefinidas fracas ao getter e à função de versão, resolvidas no link final; não depende de dynsym, dlsym ou --export-dynamic |
+| PHP ELF estático só com psampler | Referências fracas ausentes viram NULL; psampler carrega normalmente |
+| Ambos os módulos compartilhados | Referências fracas quando disponíveis; fallback `DL_FETCH_SYMBOL` no handle do módulo Swoole, uma vez no MINIT |
+| psampler estática e Swoole compartilhado | Fallback pelo handle Swoole no MINIT, quando o PHP suporta carregar DSOs |
+| psampler compartilhada e Swoole estático | Símbolos do executável precisam estar exportados para o loader; fallback RTLD_DEFAULT quando disponível |
+| Outros formatos/toolchains sem weak ELF | Resolução pelo handle em builds compartilhados; estático requer a opção de link direto abaixo |
 
-Os testes futuros usam SKIPIF explícito quando não há provider registrado;
-não representam integração funcional com o patch v1.1.3. A fixture é uma
-extensão separada em `tests/native_binary_provider/`; não integra o build de
-produção e não depende de Swoole. Seu README descreve uso e limites.
+O Makefile local do pcg729 liga `PHP_GLOBAL_OBJS` diretamente no executável,
+incluindo `ext/swoole/ext-src/swoole_buffer.o`. Além disso, o MINIT do Swoole
+faz referência forte a `php_swoole_buffer_minit()`, na mesma unidade que os
+exports C. Assim, a unidade não depende da referência fraca para entrar no link.
+Uma referência fraca **sozinha** não extrai um membro não referenciado de um
+arquivo `.a`. Se outro build arquivar/remover essa unidade, precisa preservar
+essa referência forte, usar whole-archive/undefined apropriado ou link direto.
+Visibilidade default de um símbolo não implica exportação na dynsym de um
+executável; por isso dlsym não é a solução para o PHP completamente estático.
+Essas propriedades foram conferidas nos fontes/Makefile, sem relink ou teste.
 
-A compilação local deverá validar macros Zend, assinaturas/arginfo, exports,
-instalação dos headers, linkagem dos sources em build estático/dinâmico e
-build da fixture com dependência/ordem corretas. Executar depois os PHPTs
-novos e existentes, inclusive module_info e regressões de PCM/DSP. Verificar
-ZTS com workers paralelos e objetos independentes, 32 bits e Windows quando
-aplicáveis. ASan/UBSan devem exercitar wraparound, destruição e falhas;
-bailout Zend e shutdown/unload precisam de validação em processos isolados.
-Os testes PHPT não provam a ausência de strings por instrumentação: a revisão
-do caminho C mostra que não há construção de payload string na integração;
-uma medição futura poderá confirmar alocações e custo.
+A opção padrão é a detecção opcional, sem dependência de link obrigatória.
+`--disable-psampler-swoole-bridge` elimina a resolução/registro Swoole.
+`--enable-psampler-swoole-static` força referências fortes aos dois exports,
+para toolchains sem weak ELF ou exigência explícita de resolver no link. Nessa
+opção o Swoole modificado deve estar ligado ao processo, e um símbolo ausente
+vira erro de link: a garantia de independência aplica-se ao build padrão.
+Windows estático requer essa opção e a configuração de build/imports apropriada;
+o repositório não possui config.w32. Windows e formatos não ELF não foram validados.
 
-Nenhuma compilação, PHPT, script PHP, teste nativo, benchmark ou instalação de
-dependência foi executado nesta tarefa. A versão da psampler não foi alterada.
+Não usamos `PHP_ADD_EXTENSION_DEP(psampler, swoole)`: mesmo com dependência
+opcional de configuração essa macro PHP rejeita psampler estática com Swoole
+compartilhado. A dependência Zend opcional é suficiente para o MINIT e não
+força presença nem link do Swoole. Também foi removido o define incondicional
+COMPILE_DL_PSAMPLER: PHP_NEW_EXTENSION define get_module somente para build
+compartilhado, evitando export indevido no executável estático.
+Não há suporte a dl()/unload de módulos durante requests nem descoberta tardia.
+
+### Ownership, guards, bailout e ZTS
+
+O dispatcher mantém a origem viva antes de acquire até depois de release.
+O Swoole mantém sua referência adicional e o guard/token por thread; a ponte
+não toma posse do storage nem modifica esse protocolo. Acquire mal-sucedido
+não chama release; todo acquire bem-sucedido chama release uma vez, inclusive
+metadata inválida, exceção ou bailout do consumidor/reserva do ring. O caminho
+de bailout existente não foi alterado. Após release não há ponteiro retido.
+
+O guard do Swoole bloqueia clear, reconstrução e recvfromInto antes de alterar
+bytes ou suspender; acquire recusa receive pendente. O produtor também bloqueia
+switch de Fiber e protege as trocas de corrotinas. A cópia em appendBuffer é
+síncrona, sem PHP, I/O, callback assíncrono ou suspensão dentro do empréstimo.
+ByteBuffer continua recusando autoappend antes de reservar/crescer o ring,
+inclusive comprimento zero; seus métodos existentes e o caminho PCM/DSP não
+foram alterados.
+
+A tabela/cache e o registry são escritos apenas no startup/shutdown e lidos
+nos requests ZTS. Só contêm metadados de classe e funções. Views ficam na stack;
+storage, guards e referências pertencem ao request/thread. Não há objetos Zend
+nem payload compartilhados entre workers. Isso não autoriza compartilhar um
+objeto entre threads. Concorrência ZTS com objetos independentes ainda precisa
+de validação em runtime.
+
+## Testes preparados, ainda não executados nesta etapa
+
+Os testes anteriores de ByteBuffer, registry, PCM e DSP permanecem aplicáveis.
+Foram promovidos os dois testes Swoole antes chamados `_future` e removida a
+exigência de módulo separado. Testes positivos usam objetos reais e exigem
+Swoole compatível; o status de suporte é uma asserção, não motivo de SKIP.
+
+| PHPT | Cobertura |
+| --- | --- |
+| byte_buffer_native_swoole_udp | UDP loopback real, supportsNativeBuffer, vazio, NUL, 160/172/1024/2048 bytes, reutilização e overflow de datagrama |
+| byte_buffer_native_swoole_ring | 200 recepções, slices/offset no fim, falha de slice atômica, wraparound, crescimento, integridade, destruição da origem e autoappend |
+| binary_provider_swoole_guards | Mutações/nova aquisição/Fiber recusadas, receive não consome datagrama durante borrow, receive pendente/cancelamento e cleanup |
+| binary_provider_swoole_lifecycle | Fixture C existente lê objeto Swoole real, exceções/FAILURE/SUCCESS com exceção, bailout com refcount balanceado, reconstrução, não construído e WeakReference |
+| byte_buffer_native_swoole_oom | OOM ao crescer destino fora de coroutine, guard devolvido, estado antigo preservado e reutilização em shutdown |
+| byte_buffer_native_no_swoole | Já existente: psampler sem Swoole e classe PHP impostora |
+| byte_buffer_native_swoole_unavailable | Já existente: Buffer sem ABI/provider é rejeitado sem conversão |
+| byte_buffer_native_swoole_abi_rejected | Variante isolada da fixture: versão, tamanho, tabela/classe/callbacks incompatíveis não registram produtor |
+| byte_buffer_native_swoole_abi_fixture | Controle positivo da mesma matriz, sem substituir os testes de objetos reais |
+
+A fixture `tests/native_binary_provider` continua fora do build de produção.
+Sua opção alternativa `--enable-psampler-binary-test-swoole-abi` reutiliza o
+mesmo module_entry e o nome de módulo `swoole` para simular exclusivamente os
+contratos de startup. Nunca carregar essa variante com Swoole real. O modo
+normal da fixture, usado nos testes reais, continua dependendo da psampler.
+
+Veja [validação e benchmark](swoole-bridge-validation.md) para comandos,
+matriz de build, medições e limitações. Nenhum PHPT integrado ou benchmark foi
+executado nesta etapa; não há resultado de desempenho nem alegação de ganho.

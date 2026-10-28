@@ -37,10 +37,11 @@ Para bytes binários genéricos, `ByteBuffer::appendBuffer(object $source,
 int $offset = 0, ?int $length = null)` copia de um produtor nativo registrado
 diretamente para o ring, sem string intermediária.
 `ByteBuffer::supportsNativeBuffer(object $source)` consulta suporte à classe.
-A ABI C síncrona separada permite também leitura sem cópia. O suporte ao
-`Swoole\Buffer` aguarda uma API C pública no produtor e uma ponte opcional;
-o patch atual do pcg729 v1.1.3 ainda não fornece essa API. Implementação e
-testes novos não compilados/executados: [contrato binário](docs/native-buffers.md).
+A ABI C síncrona separada permite também leitura sem cópia. A própria psampler inclui a ponte opcional para `Swoole\Buffer` com a ABI C
+v1 do patch atual do pcg729. Funciona sem Swoole e recusa versões incompatíveis;
+a resolução ocorre apenas no startup, inclusive no PHP estático ELF/ZTS.
+Integração e testes aguardam o novo binário: [contrato binário](docs/native-buffers.md)
+e [validação/benchmark](docs/swoole-bridge-validation.md).
 
 ## PCM nativo: PcmBuffer e stereoToMono
 

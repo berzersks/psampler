@@ -40,6 +40,11 @@ adquire a view e destrói esse dono dentro do callback. A leitura subsequente
 testa a referência mantida pelo dispatcher; a origem deve morrer no retorno.
 Rodar esse caminho posteriormente com ASan/UBSan.
 
+`psampler_binary_test_pin_source(object &$source)` permite o mesmo teste com
+um produtor real: zera o zval do último dono PHP durante o empréstimo, lê os
+spans e retorna o checksum. A WeakReference deve morrer após release/unpin.
+O helper não cria referências adicionais ao objeto nem strings de payload.
+
 `psampler_binary_test_uninitialized(prototype)` aloca um objeto da classe do
 protótipo registrado sem chamar o construtor, exclusivamente para testar esse
 estado. Reflection proíbe esse bypass em classes internas finais com
@@ -52,10 +57,20 @@ recusados durante requests. MSHUTDOWN remove o produtor antes de seu código
 ser descarregado.
 
 Os PHPTs `binary_provider_{read,validation,guards}.phpt` exigem a fixture via
-`--EXTENSIONS--`. O teste futuro de guards Swoole exige também a futura API
-C pública e ponte registrada. Os PHPTs futuros declaram a ponte proposta
-`psampler_swoole` em EXTENSIONS. Execute separadamente o cenário sem Swoole;
-ele usa SKIPIF quando Swoole está carregado.
+`--EXTENSIONS--`. Os testes de guards/lifecycle Swoole usam a ponte incorporada
+na psampler e objetos reais da ABI C v1. Não há módulo adicional de produção.
+Execute separadamente o cenário sem Swoole; ele usa SKIPIF quando Swoole está
+carregado. Os novos testes ainda não foram executados nesta etapa.
+
+A opção alternativa `--enable-psampler-binary-test-swoole-abi` reutiliza o único
+module_entry da fixture como módulo `swoole`, sem dependência de startup da
+psampler e sem registrar diretamente nenhum provider. Serve exclusivamente para
+testar a detecção/validação de ABI no MINIT da própria psampler. Não carregar
+com Swoole real. A classe interna simulada aceita string de seed, como a fixture
+normal, e não é usada como substituto dos testes UDP reais. A variável de
+ambiente `PSAMPLER_SWOOLE_TEST_ABI_MODE` seleciona os contratos incompatíveis
+ou `valid`. Comandos e matriz em
+[swoole-bridge-validation.md](../../docs/swoole-bridge-validation.md).
 
 `psampler.test.lifecycle` é uma operação PCM registrada apenas por esta fixture.
 Os modos `success`, `failure`, `exception`, `exception-success`, `bailout` e

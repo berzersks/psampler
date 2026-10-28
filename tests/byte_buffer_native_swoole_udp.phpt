@@ -1,18 +1,15 @@
 --TEST--
-FUTURE INTEGRATION: recvfromInto native append requires public Swoole C API and bridge
+recvfromInto native append uses the built-in psampler bridge
 --EXTENSIONS--
 psampler
 swoole
-psampler_swoole
 --SKIPIF--
 <?php
 if (!class_exists('Swoole\\Buffer', false)
     || !method_exists('Swoole\\Coroutine\\Socket', 'recvfromInto')) {
     die('skip requires patched Swoole recvfromInto');
 }
-if (!ByteBuffer::supportsNativeBuffer(new Swoole\Buffer(2048))) {
-    die('skip future public Swoole borrow ABI and registered bridge not implemented in v1.1.3');
-}
+
 ?>
 --FILE--
 <?php
@@ -24,8 +21,9 @@ Swoole\Coroutine\run(function () {
     $port = $receiver->getsockname()['port'];
     $native = new Swoole\Buffer(2048);
     $destination = new ByteBuffer(8);
+    check(ByteBuffer::supportsNativeBuffer($native));
     check($destination->appendBuffer($native) === null);
-    foreach ([0, 160, 1024, 2048, 160] as $size) {
+    foreach ([0, 160, 172, 1024, 2048, 160] as $size) {
         $packet = substr(str_repeat("\0\xffabc\0\x80", 300), 0, $size);
         check($sender->sendto('127.0.0.1', $port, $packet) === $size);
         $peer = null;
@@ -49,6 +47,7 @@ Swoole\Coroutine\run(function () {
 --EXPECT--
 UDP 0 OK
 UDP 160 OK
+UDP 172 OK
 UDP 1024 OK
 UDP 2048 OK
 UDP 160 OK

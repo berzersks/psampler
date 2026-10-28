@@ -8,6 +8,7 @@
 #include "php_psampler.h"
 #include "byte_buffer.h"
 #include "binary_buffer.h"
+#include "swoole_bridge.h"
 #include "pcm_analyzer.h"
 #include "pcm_buffer.h"
 #include "pcm_core.h"
@@ -1028,6 +1029,7 @@ PHP_MINIT_FUNCTION(psampler)
         filter_cache_shutdown();
         return FAILURE;
     }
+    psampler_swoole_bridge_init();
     psampler_pcm_registry_init();
     psampler_register_pcm_buffer_class();
     memcpy(&pcm_analyzer_handlers, &std_object_handlers, sizeof(zend_object_handlers));
@@ -1043,6 +1045,7 @@ PHP_MINIT_FUNCTION(psampler)
 
 PHP_MSHUTDOWN_FUNCTION(psampler)
 {
+    psampler_swoole_bridge_shutdown();
     psampler_binary_registry_shutdown();
     psampler_pcm_registry_shutdown();
     filter_cache_shutdown();
@@ -1062,6 +1065,7 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_row(2, "Author", "psampler");
     php_info_print_table_row(2, "PCM native API", "v1; startup registry, PCM16LE borrowed access");
     php_info_print_table_row(2, "Binary native API", "v1; synchronous borrowed spans, optional providers");
+    php_info_print_table_row(2, "Swoole Buffer bridge", psampler_swoole_bridge_status());
     php_info_print_table_end();
 
     // Classes expostas ao userland
@@ -1119,8 +1123,13 @@ PHP_MINFO_FUNCTION(psampler)
     php_info_print_table_end();
 }
 
+static const zend_module_dep psampler_deps[] = {
+    ZEND_MOD_OPTIONAL("swoole")
+    ZEND_MOD_END
+};
+
 zend_module_entry psampler_module_entry = {
-    STANDARD_MODULE_HEADER,
+    STANDARD_MODULE_HEADER_EX, NULL, psampler_deps,
     "psampler",
     psampler_functions,
     PHP_MINIT(psampler),

@@ -304,6 +304,34 @@ PHP_FUNCTION(psampler_binary_test_pin)
     RETURN_TRUE;
 }
 
+typedef struct {
+    zval *owner;
+    read_context read;
+} pin_source_context;
+
+static zend_result test_read_drop_source(const psampler_binary_view *view, void *opaque)
+{
+    pin_source_context *context = opaque;
+    /* The by-reference argument owns the object. Remove that ownership while
+     * with_view and the producer hold their mandatory pins. Read afterwards. */
+    zval_ptr_dtor(context->owner);
+    ZVAL_NULL(context->owner);
+    return test_read_view(view, &context->read);
+}
+
+PHP_FUNCTION(psampler_binary_test_pin_source)
+{
+    zval *source;
+    pin_source_context context = {0};
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_ZVAL(source)
+    ZEND_PARSE_PARAMETERS_END();
+    ZVAL_DEREF(source);
+    context.owner = source;
+    if (psampler_binary_with_view(source, test_read_drop_source, &context) != SUCCESS) RETURN_THROWS();
+    RETURN_LONG(context.read.checksum);
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_construct, 0, 0, 1)
     ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, mode, IS_STRING, 0, "\"valid\"")
@@ -323,6 +351,9 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test_catch, 0, 1, IS_ARRAY, 0)
     ZEND_ARG_TYPE_INFO(0, source, IS_OBJECT, 0)
 ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test_pin_source, 0, 1, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(1, source, IS_OBJECT, 0)
+ZEND_END_ARG_INFO()
 
 static const zend_function_entry test_methods[] = {
     PHP_ME(PsamplerBinaryTestBuffer, __construct, arginfo_test_construct, ZEND_ACC_PUBLIC)
@@ -336,10 +367,14 @@ static const zend_function_entry test_functions[] = {
     PHP_FE(psampler_binary_test_read, arginfo_test_read)
     PHP_FE(psampler_binary_test_registry_locked, arginfo_test_locked)
     PHP_FE(psampler_binary_test_pin, arginfo_test_locked)
+    PHP_FE(psampler_binary_test_pin_source, arginfo_test_pin_source)
     PHP_FE(psampler_binary_test_uninitialized, arginfo_test_uninitialized)
     PHP_FE_END
 };
 
+#ifdef PSAMPLER_BINARY_TEST_SWOOLE_ABI
+#include "swoole_abi_fixture.inc"
+#else
 PHP_MINIT_FUNCTION(psampler_binary_test)
 {
     zend_class_entry ce;
@@ -393,9 +428,14 @@ static const zend_module_dep test_deps[] = {
     ZEND_MOD_REQUIRED("psampler")
     ZEND_MOD_END
 };
+#endif
 zend_module_entry psampler_binary_test_module_entry = {
     STANDARD_MODULE_HEADER_EX, NULL, test_deps,
+#ifdef PSAMPLER_BINARY_TEST_SWOOLE_ABI
+    "swoole", test_functions,
+#else
     "psampler_binary_test", test_functions,
+#endif
     PHP_MINIT(psampler_binary_test), PHP_MSHUTDOWN(psampler_binary_test),
     NULL, NULL, NULL, "0.0.0", STANDARD_MODULE_PROPERTIES
 };

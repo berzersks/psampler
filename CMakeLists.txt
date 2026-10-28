@@ -9,6 +9,12 @@ add_executable(psampler
         config.m4
         byte_buffer.c
         byte_buffer.h
+        binary_buffer.c
+        binary_buffer.h
+        psampler_binary.h
+        swoole_bridge.c
+        swoole_bridge.h
+        swoole_buffer_c_api.h
         php_psampler.h
         pcm_core.c
         pcm_core.h
