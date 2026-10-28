@@ -38,7 +38,10 @@ Swoole\Coroutine\run(function () {
         if ($size > 0) {
             $before = $dst->length(); $capacity = $dst->capacity();
             try { $dst->appendBuffer($source, $size + 1); throw new Exception('range accepted'); }
-            catch (ValueError $error) {}
+            catch (ValueError $error) {
+                // The trace owns the appendBuffer source argument until freed.
+                unset($error);
+            }
             check($dst->length() === $before && $dst->capacity() === $capacity);
         }
         // Release must have happened even after an invalid slice.
