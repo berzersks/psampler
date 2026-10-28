@@ -3,6 +3,6 @@
 
 #include "php.h"
 
-void psampler_register_byte_buffer_class(void);
+zend_result psampler_register_byte_buffer_class(void);
 
 #endif /* PSAMPLER_BYTE_BUFFER_H */

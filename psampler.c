@@ -7,6 +7,7 @@
 #include "Zend/zend_exceptions.h"
 #include "php_psampler.h"
 #include "byte_buffer.h"
+#include "binary_buffer.h"
 #include "pcm_analyzer.h"
 #include "pcm_buffer.h"
 #include "pcm_core.h"
@@ -1021,7 +1022,12 @@ PHP_MINIT_FUNCTION(psampler)
     lpcm_ce = zend_register_internal_class(&ce);
     lpcm_ce->create_object = lpcm_create;
 
-    psampler_register_byte_buffer_class();
+    psampler_binary_registry_init();
+    if (psampler_register_byte_buffer_class() != SUCCESS) {
+        psampler_binary_registry_shutdown();
+        filter_cache_shutdown();
+        return FAILURE;
+    }
     psampler_pcm_registry_init();
     psampler_register_pcm_buffer_class();
     memcpy(&pcm_analyzer_handlers, &std_object_handlers, sizeof(zend_object_handlers));
@@ -1037,6 +1043,7 @@ PHP_MINIT_FUNCTION(psampler)
 
 PHP_MSHUTDOWN_FUNCTION(psampler)
 {
+    psampler_binary_registry_shutdown();
     psampler_pcm_registry_shutdown();
     filter_cache_shutdown();
     return SUCCESS;
@@ -1054,6 +1061,7 @@ PHP_MINFO_FUNCTION(psampler)
         "Reamostragem, manipulacao PCM e evidencias acusticas/ring PCM16");
     php_info_print_table_row(2, "Author", "psampler");
     php_info_print_table_row(2, "PCM native API", "v1; startup registry, PCM16LE borrowed access");
+    php_info_print_table_row(2, "Binary native API", "v1; synchronous borrowed spans, optional providers");
     php_info_print_table_end();
 
     // Classes expostas ao userland
@@ -1069,6 +1077,8 @@ PHP_MINFO_FUNCTION(psampler)
         "encodeStereo(array, array): string, decodeStereo(string): array");
     php_info_print_table_row(2, "ByteBuffer",
         "__construct(int initialCapacity=4096), append(string): void, "
+        "appendBuffer(object source, int offset=0, ?int length=null): void, "
+        "supportsNativeBuffer(object source): bool, "
         "length(): int, has(int): bool, pop(int): string, peek(int): string, "
         "discard(int): void, clear(): void, capacity(): int");
     php_info_print_table_row(2, "PcmBuffer",

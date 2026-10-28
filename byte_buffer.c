@@ -4,6 +4,9 @@
 
 #include "php.h"
 #include "byte_buffer.h"
+#define PSAMPLER_BINARY_BUILD
+#include "psampler_binary.h"
+#include "Zend/zend_exceptions.h"
 
 #include <string.h>
 
@@ -16,6 +19,7 @@ typedef struct _byte_buffer_object {
     size_t read_pos;
     size_t write_pos;
     size_t length;
+    zend_bool borrowed;
     zend_object std;
 } byte_buffer_object;
 
@@ -29,6 +33,64 @@ static inline byte_buffer_object *byte_buffer_from_object(zend_object *object)
 }
 
 #define BYTE_BUFFER_OBJ(zv) byte_buffer_from_object(Z_OBJ_P((zv)))
+
+static zend_bool byte_buffer_mutable(const byte_buffer_object *buffer)
+{
+    if (UNEXPECTED(buffer->borrowed)) {
+        zend_throw_error(NULL, "ByteBuffer cannot be modified during a native read");
+        return 0;
+    }
+    return 1;
+}
+
+static zend_result byte_buffer_acquire(zend_object *source, psampler_binary_view *view)
+{
+    byte_buffer_object *buffer;
+    size_t first, expected_write;
+
+    /* Only inspect our private layout after class AND handlers validation. */
+    if (source->ce != byte_buffer_ce || source->handlers != &byte_buffer_handlers) {
+        zend_value_error("Invalid ByteBuffer native source");
+        return FAILURE;
+    }
+    buffer = byte_buffer_from_object(source);
+    if (buffer->data == NULL || buffer->capacity == 0) {
+        zend_throw_error(NULL, "ByteBuffer has no initialized native storage");
+        return FAILURE;
+    }
+    if (buffer->capacity > BYTE_BUFFER_MAX_CAPACITY || buffer->length > buffer->capacity
+        || buffer->read_pos >= buffer->capacity || buffer->write_pos >= buffer->capacity) {
+        zend_value_error("Invalid ByteBuffer native storage bounds");
+        return FAILURE;
+    }
+    first = buffer->capacity - buffer->read_pos;
+    expected_write = buffer->length >= first
+        ? buffer->length - first : buffer->read_pos + buffer->length;
+    if (buffer->write_pos != expected_write) {
+        zend_value_error("Invalid ByteBuffer native ring positions");
+        return FAILURE;
+    }
+    if (buffer->borrowed) {
+        zend_throw_error(NULL, "ByteBuffer already has an active native read");
+        return FAILURE;
+    }
+    if (first > buffer->length) first = buffer->length;
+    view->source = source;
+    view->spans[0].data = buffer->data + buffer->read_pos;
+    view->spans[0].length = first;
+    view->spans[1].data = buffer->data;
+    view->spans[1].length = buffer->length - first;
+    view->capacity = buffer->capacity;
+    view->token = NULL;
+    buffer->borrowed = 1;
+    return SUCCESS;
+}
+
+static void byte_buffer_release(zend_object *source, const psampler_binary_view *view)
+{
+    (void) view;
+    byte_buffer_from_object(source)->borrowed = 0;
+}
 
 static zend_object *byte_buffer_create(zend_class_entry *ce)
 {
@@ -154,6 +216,77 @@ static zend_bool byte_buffer_validate_read(
     return 1;
 }
 
+/* Storage must already be reserved for the whole operation. Source may not
+ * alias this object's allocation. All potentially failing checks precede this. */
+static void byte_buffer_write(byte_buffer_object *buffer,
+    const unsigned char *data, size_t length)
+{
+    size_t first, second;
+
+    if (length == 0) return;
+    first = buffer->capacity - buffer->write_pos;
+    if (first > length) first = length;
+    memcpy(buffer->data + buffer->write_pos, data, first);
+    second = length - first;
+    if (second != 0) {
+        memcpy(buffer->data, data + first, second);
+        buffer->write_pos = second;
+    } else {
+        buffer->write_pos += first;
+        if (buffer->write_pos == buffer->capacity) buffer->write_pos = 0;
+    }
+    buffer->length += length;
+}
+
+typedef struct {
+    byte_buffer_object *destination;
+    size_t offset;
+    size_t length;
+    zend_bool all_remaining;
+} byte_buffer_append_context;
+
+static zend_result byte_buffer_append_view(const psampler_binary_view *view, void *opaque)
+{
+    byte_buffer_append_context *context = opaque;
+    byte_buffer_object *buffer = context->destination;
+    size_t total = view->spans[0].length + view->spans[1].length;
+    size_t offset = context->offset, length, remaining;
+    unsigned int i;
+
+    if (view->source == &buffer->std) {
+        zend_value_error("ByteBuffer cannot append its own borrowed storage");
+        return FAILURE;
+    }
+    if (!byte_buffer_mutable(buffer)) return FAILURE;
+    if (offset > total) {
+        zend_argument_value_error(2, "must not exceed the native source length");
+        return FAILURE;
+    }
+    length = context->all_remaining ? total - offset : context->length;
+    if (length > total - offset) {
+        zend_argument_value_error(3, "must not exceed the bytes remaining after offset");
+        return FAILURE;
+    }
+    /* Reserve once, before copying either span: no partially appended data on
+     * validation failure. Growth retains the existing ring implementation. */
+    if (!byte_buffer_reserve(buffer, length)) return FAILURE;
+    remaining = length;
+    for (i = 0; i < 2 && remaining != 0; i++) {
+        size_t available = view->spans[i].length;
+        size_t count;
+        if (offset >= available) {
+            offset -= available;
+            continue;
+        }
+        count = available - offset;
+        if (count > remaining) count = remaining;
+        byte_buffer_write(buffer, view->spans[i].data + offset, count);
+        remaining -= count;
+        offset = 0;
+    }
+    return SUCCESS;
+}
+
 static zend_string *byte_buffer_copy_bytes(
     const byte_buffer_object *buffer,
     size_t bytes
@@ -215,9 +348,10 @@ PHP_METHOD(ByteBuffer, __construct)
         RETURN_THROWS();
     }
 
+    buffer = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(buffer)) RETURN_THROWS();
     /* Allocate first so a repeated constructor call cannot lose old data on OOM. */
     new_data = emalloc((size_t) initial_capacity);
-    buffer = BYTE_BUFFER_OBJ(getThis());
 
     if (buffer->data != NULL) {
         efree(buffer->data);
@@ -235,43 +369,66 @@ PHP_METHOD(ByteBuffer, append)
     zend_string *data;
     byte_buffer_object *buffer;
     size_t data_length;
-    size_t first_part;
-    size_t second_part;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(data)
     ZEND_PARSE_PARAMETERS_END();
 
+    buffer = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(buffer)) RETURN_THROWS();
     data_length = ZSTR_LEN(data);
     if (data_length == 0) {
         RETURN_NULL();
     }
 
-    buffer = BYTE_BUFFER_OBJ(getThis());
     if (!byte_buffer_reserve(buffer, data_length)) {
         RETURN_THROWS();
     }
 
-    first_part = buffer->capacity - buffer->write_pos;
-    if (first_part > data_length) {
-        first_part = data_length;
-    }
-
-    memcpy(buffer->data + buffer->write_pos, ZSTR_VAL(data), first_part);
-
-    second_part = data_length - first_part;
-    if (second_part != 0) {
-        memcpy(buffer->data, ZSTR_VAL(data) + first_part, second_part);
-        buffer->write_pos = second_part;
-    } else {
-        buffer->write_pos += first_part;
-        if (buffer->write_pos == buffer->capacity) {
-            buffer->write_pos = 0;
-        }
-    }
-
-    buffer->length += data_length;
+    byte_buffer_write(buffer, (const unsigned char *) ZSTR_VAL(data), data_length);
     RETURN_NULL();
+}
+
+PHP_METHOD(ByteBuffer, appendBuffer)
+{
+    zval *source;
+    zend_long offset = 0, length = 0;
+    bool length_is_null = true;
+    byte_buffer_append_context context;
+
+    ZEND_PARSE_PARAMETERS_START(1, 3)
+        Z_PARAM_OBJECT(source)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(offset)
+        Z_PARAM_LONG_OR_NULL(length, length_is_null)
+    ZEND_PARSE_PARAMETERS_END();
+
+    context.destination = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(context.destination)) RETURN_THROWS();
+    if (offset < 0) {
+        zend_argument_value_error(2, "must be greater than or equal to 0");
+        RETURN_THROWS();
+    }
+    if (!length_is_null && length < 0) {
+        zend_argument_value_error(3, "must be greater than or equal to 0 or null");
+        RETURN_THROWS();
+    }
+    context.offset = (size_t) offset;
+    context.length = (size_t) length;
+    context.all_remaining = length_is_null;
+    if (psampler_binary_with_view(source, byte_buffer_append_view, &context) != SUCCESS) {
+        RETURN_THROWS();
+    }
+    RETURN_NULL();
+}
+
+PHP_METHOD(ByteBuffer, supportsNativeBuffer)
+{
+    zval *source;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT(source)
+    ZEND_PARSE_PARAMETERS_END();
+    RETURN_BOOL(psampler_binary_source_supported(source));
 }
 
 PHP_METHOD(ByteBuffer, length)
@@ -328,6 +485,7 @@ PHP_METHOD(ByteBuffer, pop)
     ZEND_PARSE_PARAMETERS_END();
 
     buffer = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(buffer)) RETURN_THROWS();
     if (!byte_buffer_validate_read(buffer, bytes)) {
         RETURN_THROWS();
     }
@@ -353,6 +511,7 @@ PHP_METHOD(ByteBuffer, discard)
     ZEND_PARSE_PARAMETERS_END();
 
     buffer = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(buffer)) RETURN_THROWS();
     if (!byte_buffer_validate_read(buffer, bytes)) {
         RETURN_THROWS();
     }
@@ -371,6 +530,7 @@ PHP_METHOD(ByteBuffer, clear)
     ZEND_PARSE_PARAMETERS_NONE();
 
     buffer = BYTE_BUFFER_OBJ(getThis());
+    if (!byte_buffer_mutable(buffer)) RETURN_THROWS();
     buffer->read_pos = 0;
     buffer->write_pos = 0;
     buffer->length = 0;
@@ -386,6 +546,16 @@ PHP_METHOD(ByteBuffer, capacity)
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_byte_buffer_construct, 0, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, initialCapacity, IS_LONG, 0, "4096")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_byte_buffer_append_buffer, 0, 1, IS_VOID, 0)
+    ZEND_ARG_TYPE_INFO(0, source, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, length, IS_LONG, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_byte_buffer_supports_native, 0, 1, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, source, IS_OBJECT, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(
@@ -449,6 +619,8 @@ ZEND_END_ARG_INFO()
 static const zend_function_entry byte_buffer_methods[] = {
     PHP_ME(ByteBuffer, __construct, arginfo_byte_buffer_construct, ZEND_ACC_PUBLIC)
     PHP_ME(ByteBuffer, append, arginfo_byte_buffer_append, ZEND_ACC_PUBLIC)
+    PHP_ME(ByteBuffer, appendBuffer, arginfo_byte_buffer_append_buffer, ZEND_ACC_PUBLIC)
+    PHP_ME(ByteBuffer, supportsNativeBuffer, arginfo_byte_buffer_supports_native, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(ByteBuffer, length, arginfo_byte_buffer_length, ZEND_ACC_PUBLIC)
     PHP_ME(ByteBuffer, has, arginfo_byte_buffer_has, ZEND_ACC_PUBLIC)
     PHP_ME(ByteBuffer, pop, arginfo_byte_buffer_read, ZEND_ACC_PUBLIC)
@@ -459,9 +631,13 @@ static const zend_function_entry byte_buffer_methods[] = {
     PHP_FE_END
 };
 
-void psampler_register_byte_buffer_class(void)
+zend_result psampler_register_byte_buffer_class(void)
 {
     zend_class_entry ce;
+    psampler_binary_provider provider = {
+        PSAMPLER_BINARY_API_VERSION, sizeof(psampler_binary_provider),
+        NULL, byte_buffer_acquire, byte_buffer_release
+    };
 
     memcpy(
         &byte_buffer_handlers,
@@ -476,4 +652,6 @@ void psampler_register_byte_buffer_class(void)
     byte_buffer_ce = zend_register_internal_class(&ce);
     byte_buffer_ce->create_object = byte_buffer_create;
     byte_buffer_ce->ce_flags |= ZEND_ACC_FINAL | ZEND_ACC_NOT_SERIALIZABLE;
+    provider.source_ce = byte_buffer_ce;
+    return psampler_binary_register_provider(&provider) ? SUCCESS : FAILURE;
 }

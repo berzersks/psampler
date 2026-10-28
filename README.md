@@ -33,6 +33,15 @@ funções globais são `interleavePcmStereo()`, `monoToStereo()` e
 `stereoToMono()`. O inventário completo, incluindo as assinaturas de todos os
 métodos, pode ser consultado com `php --ri psampler`.
 
+Para bytes binários genéricos, `ByteBuffer::appendBuffer(object $source,
+int $offset = 0, ?int $length = null)` copia de um produtor nativo registrado
+diretamente para o ring, sem string intermediária.
+`ByteBuffer::supportsNativeBuffer(object $source)` consulta suporte à classe.
+A ABI C síncrona separada permite também leitura sem cópia. O suporte ao
+`Swoole\Buffer` aguarda uma API C pública no produtor e uma ponte opcional;
+o patch atual do pcg729 v1.1.3 ainda não fornece essa API. Implementação e
+testes novos não compilados/executados: [contrato binário](docs/native-buffers.md).
+
 ## PCM nativo: PcmBuffer e stereoToMono
 
 `stereoToMono(string $pcmData): string` converte PCM16LE stereo intercalado

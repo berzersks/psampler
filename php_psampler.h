@@ -94,6 +94,8 @@
  * --------------------------------------------------------------------------
  *   __construct(int $initialCapacity = 4096)
  *   append(string $data): void
+ *   appendBuffer(object $source, int $offset = 0, ?int $length = null): void
+ *   static supportsNativeBuffer(object $source): bool
  *   length(): int
  *   has(int $bytes): bool
  *   pop(int $bytes): string
@@ -101,6 +103,7 @@
  *   discard(int $bytes): void
  *   clear(): void
  *   capacity(): int
+ *   Integracao binaria C: psampler_binary.h; docs/native-buffers.md.
  *
  * --------------------------------------------------------------------------
  * API: class PcmBuffer (final, nao clonavel/serializavel)
