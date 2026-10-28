@@ -427,6 +427,16 @@ PHP_METHOD(PcmBuffer, canInvoke)
     RETURN_BOOL(pcm_registry_ready && zend_hash_exists(&pcm_operations, operation));
 }
 
+/* Detach before destruction: a result destructor may itself throw or bail out.
+ * The Zend-owned slot must never still refer to that partially destroyed value. */
+static void pcm_discard_result(zval *return_value)
+{
+    zval discarded;
+    ZVAL_COPY_VALUE(&discarded, return_value);
+    ZVAL_NULL(return_value);
+    zval_ptr_dtor(&discarded);
+}
+
 PHP_METHOD(PcmBuffer, invoke)
 {
     zend_string *operation;
@@ -448,18 +458,25 @@ PHP_METHOD(PcmBuffer, invoke)
         zend_argument_value_error(1, "is not a registered PCM operation: %s", ZSTR_VAL(operation));
         RETURN_THROWS();
     }
-    pcm->invoking = 1;
     ZVAL_NULL(return_value);
-    result = entry->handler(pcm, argc, args, return_value);
-    pcm->invoking = 0;
-    if (result == FAILURE || EG(exception)) {
-        zval_ptr_dtor(return_value);
-        ZVAL_NULL(return_value);
-        if (!EG(exception)) {
-            zend_throw_error(NULL, "PCM operation failed without an exception");
+    pcm->invoking = 1;
+    /* pcm/return_value are stable pointers established before setjmp. The call
+     * frame owns $this and args; neither needs an additional reference here.
+     * Never read result in the catch branch (it may be clobbered by longjmp). */
+    zend_try {
+        result = entry->handler(pcm, argc, args, return_value);
+        pcm->invoking = 0;
+        if (result == FAILURE || EG(exception)) {
+            pcm_discard_result(return_value);
+            if (!EG(exception)) {
+                zend_throw_error(NULL, "PCM operation failed without an exception");
+            }
         }
-        RETURN_THROWS();
-    }
+    } zend_catch {
+        pcm->invoking = 0;
+        pcm_discard_result(return_value);
+        zend_bailout();
+    } zend_end_try();
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_pcm_buffer_construct, 0, 0, 2)

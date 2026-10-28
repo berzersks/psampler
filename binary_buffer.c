@@ -132,7 +132,14 @@ PSAMPLER_BINARY_API zend_result psampler_binary_with_view(zval *source,
     ZVAL_DEREF(source);
     object = Z_OBJ_P(source);
     GC_ADDREF(object);
-    result = provider->acquire(object, &view);
+    /* Acquisition may bail out (for example while reporting an error). No
+     * successful view exists yet, but our source reference still needs undoing. */
+    zend_try {
+        result = provider->acquire(object, &view);
+    } zend_catch {
+        OBJ_RELEASE(object);
+        zend_bailout();
+    } zend_end_try();
     if (result != SUCCESS) {
         OBJ_RELEASE(object);
         if (!EG(exception)) {

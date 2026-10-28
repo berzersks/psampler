@@ -7,6 +7,7 @@
 #include "ext/psampler/psampler_binary.h"
 #include "Zend/zend_exceptions.h"
 #include <string.h>
+#include "pcm_lifecycle.inc"
 
 typedef struct {
     unsigned char *data;
@@ -61,6 +62,7 @@ static zend_result test_acquire(zend_object *source, psampler_binary_view *view)
         return FAILURE;
     }
     if (mode_is(buffer, "failure")) return FAILURE; /* tests missing exception */
+    if (mode_is(buffer, "acquire-bailout")) zend_bailout();
     buffer->reading = 1;
     buffer->acquired++;
     view->source = source;
@@ -211,6 +213,32 @@ PHP_FUNCTION(psampler_binary_test_read)
     add_assoc_long(return_value, "spans", context.spans);
 }
 
+static zend_result test_bailout_view(const psampler_binary_view *view, void *context)
+{
+    zend_bailout();
+}
+
+PHP_FUNCTION(psampler_binary_test_catch)
+{
+    zval *source;
+    zend_object *object;
+    uint32_t refs;
+    volatile zend_bool caught = 0;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT(source)
+    ZEND_PARSE_PARAMETERS_END();
+    object = Z_OBJ_P(source);
+    refs = GC_REFCOUNT(object);
+    zend_try {
+        psampler_binary_with_view(source, test_bailout_view, NULL);
+    } zend_catch {
+        caught = 1;
+    } zend_end_try();
+    array_init(return_value);
+    add_next_index_bool(return_value, caught);
+    add_next_index_bool(return_value, GC_REFCOUNT(object) == refs);
+}
+
 static psampler_binary_provider test_provider(void)
 {
     psampler_binary_provider provider = {
@@ -292,6 +320,9 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test_uninitialized, 0, 1, IS_OBJECT, 0)
     ZEND_ARG_TYPE_INFO(0, prototype, IS_OBJECT, 0)
 ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test_catch, 0, 1, IS_ARRAY, 0)
+    ZEND_ARG_TYPE_INFO(0, source, IS_OBJECT, 0)
+ZEND_END_ARG_INFO()
 
 static const zend_function_entry test_methods[] = {
     PHP_ME(PsamplerBinaryTestBuffer, __construct, arginfo_test_construct, ZEND_ACC_PUBLIC)
@@ -299,6 +330,9 @@ static const zend_function_entry test_methods[] = {
     PHP_FE_END
 };
 static const zend_function_entry test_functions[] = {
+    PHP_FE(psampler_binary_test_catch, arginfo_test_catch)
+    PHP_FE(psampler_pcm_test_catch, arginfo_pcm_test_catch)
+    PHP_FE(psampler_test_bailout, arginfo_test_bailout)
     PHP_FE(psampler_binary_test_read, arginfo_test_read)
     PHP_FE(psampler_binary_test_registry_locked, arginfo_test_locked)
     PHP_FE(psampler_binary_test_pin, arginfo_test_locked)
@@ -311,6 +345,8 @@ PHP_MINIT_FUNCTION(psampler_binary_test)
     zend_class_entry ce;
     psampler_binary_provider provider;
     if (psampler_binary_api_version() != PSAMPLER_BINARY_API_VERSION) return FAILURE;
+    if (psampler_native_api_version() != PSAMPLER_NATIVE_API_VERSION
+        || !psampler_register_pcm_operation("psampler.test.lifecycle", test_pcm_lifecycle)) return FAILURE;
     memcpy(&test_handlers, &std_object_handlers, sizeof(test_handlers));
     test_handlers.offset = XtOffsetOf(test_buffer, std);
     test_handlers.free_obj = test_free;
@@ -349,6 +385,7 @@ PHP_MINIT_FUNCTION(psampler_binary_test)
 
 PHP_MSHUTDOWN_FUNCTION(psampler_binary_test)
 {
+    if (!psampler_unregister_pcm_operation("psampler.test.lifecycle")) return FAILURE;
     return psampler_binary_unregister_provider(test_ce) ? SUCCESS : FAILURE;
 }
 

@@ -1,12 +1,12 @@
 # Fixture isolada da ABI binária
 
-Código de teste **não compilado nem executado**. Não integra a lista de sources
-da psampler. Depois de compilar/instalar a psampler e o header público,
-o mantenedor pode construir esta extensão separadamente com a opção
-`--enable-psampler-binary-test` e carregá-la após psampler. Nenhuma ferramenta
-de build ou teste foi executada na preparação desta fixture.
+Módulo exclusivamente de teste, fora da lista de sources da psampler. Depois
+de compilar/instalar a psampler e os headers públicos, construa esta extensão
+separadamente com `--enable-psampler-binary-test` e carregue-a após psampler.
+A fixture também inclui um consumidor da ABI PCM v1 em `pcm_lifecycle.inc`.
 
-O include é `ext/psampler/psampler_binary.h`; a extensão exige dependência
+Os includes públicos são `ext/psampler/psampler_binary.h` e
+`ext/psampler/psampler_native.h`; a extensão exige dependência
 Zend/build de psampler. Para bibliotecas dinâmicas, psampler deve estar
 carregada antes da fixture para resolver os símbolos. Em builds estáticos,
 inclua a fixture como extensão separada e respeite a dependência declarada.
@@ -57,7 +57,35 @@ C pública e ponte registrada. Os PHPTs futuros declaram a ponte proposta
 `psampler_swoole` em EXTENSIONS. Execute separadamente o cenário sem Swoole;
 ele usa SKIPIF quando Swoole está carregado.
 
-Ainda são necessários cenários externos em processos isolados para bailout
-Zend (inclusive falha de alocação), shutdown e requests ZTS concorrentes;
-esta fixture não afirma cobrir esses casos em execução. Os contadores são
-por objeto, sem globals mutáveis por pacote.
+`psampler.test.lifecycle` é uma operação PCM registrada apenas por esta fixture.
+Os modos `success`, `failure`, `exception`, `exception-success`, `bailout` e
+`oom` exercitam retorno, resultado parcial e interrupções. `inspect` verifica
+getters/identidade/registro; `hook`, `hook-failure` e `hook-bailout` permitem
+reentrada PHP síncrona e criação de resultados cujo destrutor será observado.
+
+`psampler_pcm_test_catch(pcm, operation, ...args)` chama o método interno real
+em um frame de teste e intercepta o bailout em C. Retorna `[capturado,
+resultado_null]`; libera os argumentos desse frame e restaura o executor.
+Use somente com bailouts nativos diretos ou callbacks PHP que já retornaram:
+não serve para recuperar execução após saltar frames PHP arbitrários.
+`psampler_test_bailout()` serve exclusivamente aos testes fatais isolados.
+
+`psampler_binary_test_catch(source)` intercepta bailout de acquire/leitor e
+retorna `[capturado, refcount_preservado]`. O modo de produtor
+`acquire-bailout` interrompe antes de adquirir o guard; não deve chamar release.
+Os modos normais adquirem a view e provocam bailout no leitor, exigindo release
+exatamente uma vez. A responsabilidade do produtor por desfazer uma aquisição
+incompleta continua sendo a mesma; o dispatcher libera sua referência à origem.
+
+Os PHPTs `pcm_buffer_native_lifecycle`, `pcm_buffer_invoke_{bailout,fatal,
+cleanup_bailout,oom}`, `binary_provider_bailout` e `byte_buffer_native_oom`
+verificam guards, ownership, destruição e integridade. Execute-os com o runner
+PHPT e ambas as extensões carregadas. Os testes fatais/OOM executam em seus
+próprios processos e verificam cleanup em shutdown; os testes com captura em C
+exigem reutilização e destruição dos objetos, além da propagação do bailout.
+
+Validação de lifecycle em 2026-10-28: PHP 8.5 NTS com módulos compartilhados
+e PHP 8.5 ZTS por relink dos objetos existentes, preservando os executáveis
+originais. Valgrind com `USE_ZEND_ALLOC=0` cobre buffers, referências e os
+caminhos fatais. Isso não afirma cobertura de requests ZTS concorrentes nem
+da ponte Swoole futura.
