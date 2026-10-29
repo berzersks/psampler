@@ -935,7 +935,14 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_stereoToMono, 0, 1, IS_STRING, 0
     ZEND_ARG_TYPE_INFO(0, pcmData, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_psampler_binary_slice, 0, 1, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, source, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, length, IS_LONG, 1, "null")
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry psampler_functions[] = {
+    PHP_FE(psampler_binary_slice, arginfo_psampler_binary_slice)
     PHP_FE(interleavePcmStereo, arginfo_interleavePcmStereo)
     PHP_FE(monoToStereo, arginfo_monoToStereo)
     PHP_FE(stereoToMono, arginfo_stereoToMono)
@@ -1099,6 +1106,8 @@ PHP_MINFO_FUNCTION(psampler)
     // Funcoes globais expostas ao userland
     php_info_print_table_start();
     php_info_print_table_header(2, "Funcao global", "Assinatura");
+    php_info_print_table_row(2, "psampler_binary_slice",
+        "psampler_binary_slice(object source, int offset=0, ?int length=null): string");
     php_info_print_table_row(2, "interleavePcmStereo",
         "interleavePcmStereo(string leftPcm, string rightPcm): string|false "
         "- intercala dois canais PCM 16-bit (L/R) em stream estereo");

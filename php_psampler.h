@@ -6,8 +6,9 @@
  *
  * VISAO GERAL
  * -----------
- * Esta extensao expoe ao userland PHP cinco classes e tres funcoes globais,
- * todas voltadas para processamento de audio PCM de 16 bits (signed,
+ * Esta extensao expoe ao userland PHP cinco classes, tres funcoes PCM e
+ * psampler_binary_slice(object, int=0, ?int=null): string para leitura binaria.
+ * As operacoes de audio usam PCM de 16 bits (signed,
  * little-endian no fluxo intercalado de saida):
  *
  *   1) class Resampler  -> reamostragem de alta qualidade (filtro polyphase

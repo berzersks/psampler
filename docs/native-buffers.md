@@ -13,6 +13,34 @@ bytes continuam no mesmo código. `append(string)` e `appendBuffer()` usam a
 mesma escrita circular. Não há conversão para PCM, parser RTP ou DSP novos.
 `PcmBuffer`, `psampler_native.h` e a ABI PCM v1 permanecem intactos.
 
+### Extração direta de uma faixa
+
+```php
+function psampler_binary_slice(object $source, int $offset = 0, ?int $length = null): string;
+```
+
+A função aceita os mesmos produtores registrados da ABI binária v1, incluindo
+`Swoole\Buffer` quando a ponte está disponível. Lê os spans emprestados diretamente
+e cria somente a string do trecho solicitado, sem `toString()` ou `ByteBuffer`
+intermediário. A origem não é consumida e a string devolvida possui seus próprios
+bytes, sobrevivendo à reutilização ou destruição da origem. Funciona também sem
+Swoole, usando os demais produtores registrados.
+
+`null` seleciona os bytes restantes. Offset no fim e comprimento zero são válidos;
+faixas vazias ainda validam/adquirem a origem, mas não alocam storage de payload.
+Offsets/comprimentos negativos, faixas fora do comprimento lógico e produtores
+não registrados geram `ValueError`. Storage não inicializado ou uma origem já
+emprestada/em recepção são recusados pelo produtor. Os limites são verificados
+por subtração; os dois spans são tratados na ordem lógica, sem linearizar o ring.
+
+A operação utiliza `psampler_binary_with_view()` sem alterar as ABIs C. Nenhum
+ponteiro escapa; exceções e bailout de alocação liberam o empréstimo e a referência
+da origem pelo caminho existente. Não há callbacks PHP nem suspensão no leitor.
+
+Para RTP, o consumidor pode extrair os 12 bytes fixos, consultar o comprimento da
+extensão e extrair cabeçalho/payload em faixas independentes. O consumidor continua
+responsável pelos limites e pelo formato RTP. A função não é um parser de mídia.
+
 ```php
 final class ByteBuffer {
     // Métodos existentes preservados.
@@ -157,6 +185,7 @@ Isso pressupõe callbacks de liberação conformes ao contrato.
 | Crescimento do destino | Copia também os bytes já enfileirados para a nova alocação, como antes |
 | `append(string)` | Cópia existente da string para o ring |
 | `peek()` / `pop()` | Cópia existente para a string de retorno PHP |
+| `psampler_binary_slice()` | Copia somente a faixa solicitada para uma string independente; nenhuma cópia intermediária do pacote |
 | `discard()` / `clear()` | Nenhuma cópia do payload |
 
 O caminho nativo não chama `toString()`, não cria string PHP intermediária,

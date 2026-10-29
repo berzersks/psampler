@@ -176,3 +176,96 @@ PSAMPLER_BINARY_API zend_result psampler_binary_with_view(zval *source,
     }
     return SUCCESS;
 }
+
+typedef struct {
+    size_t offset;
+    size_t length;
+    zend_bool all_remaining;
+    zval *result;
+} binary_slice_context;
+
+static zend_result binary_slice_view(const psampler_binary_view *view, void *opaque)
+{
+    binary_slice_context *context = opaque;
+    /* with_view has validated both spans against capacity <= ZEND_LONG_MAX. */
+    size_t total = view->spans[0].length + view->spans[1].length;
+    size_t offset = context->offset, length, remaining;
+    unsigned int i;
+    char *destination;
+    zend_string *result;
+
+    if (offset > total) {
+        zend_argument_value_error(2, "must not exceed the native source length");
+        return FAILURE;
+    }
+    length = context->all_remaining ? total - offset : context->length;
+    if (length > total - offset) {
+        zend_argument_value_error(3, "must not exceed the bytes remaining after offset");
+        return FAILURE;
+    }
+    if (length > ZSTR_MAX_LEN) {
+        zend_argument_value_error(3, "exceeds the maximum PHP string length");
+        return FAILURE;
+    }
+    if (length == 0) {
+        ZVAL_EMPTY_STRING(context->result);
+        return SUCCESS;
+    }
+
+    /* Allocation is inside with_view's bailout guard. After allocation, only
+     * infallible copies remain; publish ownership directly to the PHP return. */
+    result = zend_string_alloc(length, 0);
+    ZVAL_STR(context->result, result);
+    destination = ZSTR_VAL(result);
+    remaining = length;
+    for (i = 0; i < 2 && remaining != 0; ++i) {
+        size_t available = view->spans[i].length;
+        size_t count;
+        if (offset >= available) {
+            offset -= available;
+            continue;
+        }
+        count = available - offset;
+        if (count > remaining) count = remaining;
+        memcpy(destination, view->spans[i].data + offset, count);
+        destination += count;
+        remaining -= count;
+        offset = 0;
+    }
+    ZSTR_VAL(result)[length] = '\0';
+    return SUCCESS;
+}
+
+PHP_FUNCTION(psampler_binary_slice)
+{
+    zval *source;
+    zend_long offset = 0, length = 0;
+    zend_bool length_is_null = 1;
+    binary_slice_context context;
+
+    ZEND_PARSE_PARAMETERS_START(1, 3)
+        Z_PARAM_OBJECT(source)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(offset)
+        Z_PARAM_LONG_OR_NULL(length, length_is_null)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (offset < 0) {
+        zend_argument_value_error(2, "must be greater than or equal to 0");
+        RETURN_THROWS();
+    }
+    if (!length_is_null && length < 0) {
+        zend_argument_value_error(3, "must be greater than or equal to 0 or null");
+        RETURN_THROWS();
+    }
+    context.offset = (size_t) offset;
+    context.length = (size_t) length;
+    context.all_remaining = length_is_null;
+    context.result = return_value;
+    if (psampler_binary_with_view(source, binary_slice_view, &context) != SUCCESS) {
+        /* Keep the PHP return empty if the existing reader reports failure. */
+        zval_ptr_dtor(return_value);
+        ZVAL_UNDEF(return_value);
+        RETURN_THROWS();
+    }
+}
