@@ -21,5 +21,5 @@ catch (Throwable $e) { echo "bailout converted to exception\n"; }
 $continued = true;
 ?>
 --EXPECTF--
-Fatal error: PCM fatal fixture in %s on line %d%a
+Fatal error: PCM fatal fixture in %s on line %d%A
 shutdown cleanup: OK

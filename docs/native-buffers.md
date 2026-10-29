@@ -367,3 +367,18 @@ normal da fixture, usado nos testes reais, continua dependendo da psampler.
 Veja [validação e benchmark](swoole-bridge-validation.md) para comandos,
 matriz de build, medições e limitações. Nenhum PHPT integrado ou benchmark foi
 executado nesta etapa; não há resultado de desempenho nem alegação de ganho.
+
+### PHP signature and validation of range extraction
+
+`psampler.stub.php` records the PHP signature; the runtime arginfo remains in
+`psampler.c`. `tests/binary_slice_signature.phpt` checks required arguments,
+parameter names, defaults and return type, including statically linked ZTS PHP.
+The extension version remains 0.6.1: this additive PHP function does not change
+the public C ABI v1.
+
+Run `binary_slice*.phpt` with the real Swoole bridge and the test-only native
+producer to cover wrapped spans, invalid metadata, guards and allocation
+bailout. Also run `binary_slice.phpt` without Swoole. A missing fixture is a
+skip, not evidence of successful execution. The lifecycle tests discard caught
+exceptions before asserting destruction, because their traces retain the source;
+a constructed Swoole Buffer is reused with `clear()`.

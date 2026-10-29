@@ -31,13 +31,14 @@ foreach (['failure', 'exception', 'exception-success'] as $outcome) {
 }
 check(psampler_binary_test_catch($source) === [true, true]);
 check(psampler_binary_test_read($source)['length'] === 3);
+unset($error); // Exception traces own their source until discarded.
 $dst = new ByteBuffer(1); $dst->appendBuffer($source);
 // Remove the only PHP owner inside the reader, then checksum real payload.
 $weak = WeakReference::create($source);
 check(psampler_binary_test_pin_source($source) === 195);
 check($source === null && $weak->get() === null);
 $source = new Swoole\Buffer(16);
-$source->clear(); $source->__construct(16);
+$source->clear();
 check($dst->pop(3) === "a\0b");
 $invalid = psampler_binary_test_uninitialized($source);
 try { $dst->appendBuffer($invalid); throw new Exception('unconstructed accepted'); }
