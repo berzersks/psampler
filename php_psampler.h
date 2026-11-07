@@ -190,8 +190,9 @@ extern zend_module_entry psampler_module_entry;
  *   0.5.0 - Adicionada a classe PCMAnalyzer para features acústicas PCM16.
  *   0.6.0 - Adicionada evidencia nativa de ring ao scan de PCMAnalyzer.
  *   0.6.1 - Cache LRU process-wide dos bancos FIR sinc-Kaiser.
+ *   0.7.0 - AcousticStreamAnalyzer incremental orientado a eventos.
  */
-#define PHP_PSAMPLER_VERSION "0.6.1"
+#define PHP_PSAMPLER_VERSION "0.7.0"
 
 #ifdef PHP_WIN32
 #   define PHP_PSAMPLER_API __declspec(dllexport)

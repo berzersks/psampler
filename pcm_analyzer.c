@@ -30,6 +30,7 @@ const char *pcm_signal_name(pcm_signal signal) {
 }
 void pcm_analyzer_init(pcm_analyzer *a) {
     static const double sr=8000.0;
+    a->incremental=0;
     a->sample_rate=8000; a->frame_duration_ms=20; a->frame_samples=160; a->frame_bytes=320;
     for(int i=0;i<PCM_FREQ_COUNT;i++) a->coefficients[i]=2.0*cos(2.0*M_PI*frequencies[i]/sr);
     for(int i=0;i<14;i++)a->ring_coefficients[i]=2.0*cos(2.0*M_PI*(395.0+5.0*i)/sr);
@@ -74,22 +75,22 @@ static void ring_finish_frame(pcm_analyzer *a,pcm_ring_result *r) {
     /* Cauchy-Schwarz: Hann bin amplitude <= 4/N sqrt(S2*W2).
        1499.626 safely exceeds analytic Hann W2=1499.625. */
     double bound=4.0*sqrt(a->ring_squares*1499.626)/PCM_RING_SAMPLES;
-    if(bound>=32768.0*0.003981071705534973)
+    if(!a->incremental&&bound>=32768.0*0.003981071705534973)
         ring_bank_pass(a,r->frame_count,0,14);
 #endif
 #ifdef PCM_RING_FULL_TWO_PASS_EXPERIMENT
-    ring_bank_pass(a,r->frame_count,0,14);
+    if(!a->incremental)ring_bank_pass(a,r->frame_count,0,14);
 #endif
 #ifdef PCM_RING_ALL_TWO_PASS_EXPERIMENT
-    ring_bank_pass(a,r->frame_count,0,24);
+    if(!a->incremental)ring_bank_pass(a,r->frame_count,0,24);
 #endif
     for(int i=0;i<14;i++){double level=ring_level(a,i);if(level>best){best=level;frequency=395.0+5.0*i;}}
 #ifdef PCM_RING_STAGED_EXPERIMENT
-    if(best>=-48.0&&best-ac_dbfs>=1.5)
+    if(!a->incremental&&best>=-48.0&&best-ac_dbfs>=1.5)
         ring_bank_pass(a,r->frame_count,14,10);
 #endif
 #ifdef PCM_RING_FULL_TWO_PASS_EXPERIMENT
-    ring_bank_pass(a,r->frame_count,14,10);
+    if(!a->incremental)ring_bank_pass(a,r->frame_count,14,10);
 #endif
     for(int i=0;i<10;i++)background[i]=ring_level(a,i+14);
     PCM_SORT(background,10);
@@ -121,13 +122,16 @@ static void ring_sample(pcm_analyzer *a,pcm_ring_result *r,int sample){
 #endif
     a->ring_squares+=(double)sample*sample;
     a->ring_sum+=sample;
-#if !defined(PCM_RING_STAGED_EXPERIMENT) && !defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) && !defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+#if defined(PCM_RING_STAGED_EXPERIMENT) || defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) || defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
+    if(a->incremental)
+#endif
+    {
     pcm_ring_number input=(pcm_ring_number)(sample*a->ring_hann[at]);
     for(int i=0;i<PCM_RING_BINS;i++){
         pcm_ring_number next=input+a->ring_coefficients[i]*a->ring_x[i]-a->ring_y[i];
         a->ring_y[i]=a->ring_x[i];a->ring_x[i]=next;
     }
-#endif
+    }
     if(++a->ring_sample_index==PCM_RING_SAMPLES)ring_finish_frame(a,r);
 }
 static void ring_finish_result(pcm_ring_result *r){
@@ -185,7 +189,9 @@ static pcm_frame scan_frame(pcm_analyzer *a,pcm_ring_result *r,const unsigned ch
         int sample=sample_at(pcm,(size_t)i);
 #endif
 #ifndef PCM_RING_SEPARATE
-        ring_sample(a,r,sample);
+        if (r) ring_sample(a,r,sample);
+#else
+        if(r&&a->incremental)ring_sample(a,r,sample);
 #endif
         squares += (double)sample*sample; sum+=sample; absolutes+=abs(sample);
         if(i>0) {
@@ -205,6 +211,18 @@ static pcm_frame scan_frame(pcm_analyzer *a,pcm_ring_result *r,const unsigned ch
     out.active=out.rms_dbfs>=-42.0;
     return out;
 }
+static double frame_powers(const pcm_analyzer *a,const unsigned char *samples,double *power) {
+    double total=0;
+    for(int k=0;k<PCM_FREQ_COUNT;k++) {
+        double x=0,y=0,c=a->coefficients[k];
+        for(int j=0;j<a->frame_samples;j++) {
+            double sample=sample_at(samples,(size_t)j);
+            double next=sample+c*x-y;y=x;x=next;
+        }
+        power[k]=fmax(0.0,x*x+y*y-c*x*y); total+=power[k];
+    }
+    return total;
+}
 static void spectral(const pcm_analyzer *a,const unsigned char *pcm,int start_frame,int frames,pcm_features *out) {
     int step=(frames+19)/20; if(step<5)step=5;
     double prev[PCM_FREQ_COUNT]={0},dominance[PCM_MAX_FRAMES/5+1],entropy[PCM_MAX_FRAMES/5+1],variation[PCM_MAX_FRAMES/5+1];
@@ -222,6 +240,7 @@ static void spectral(const pcm_analyzer *a,const unsigned char *pcm,int start_fr
             square+=s*s;
         }
         if(square/a->frame_samples<threshold)continue;
+#ifdef PCM_PREDECODE_SCRATCH
         for(int k=0;k<PCM_FREQ_COUNT;k++) {
             double x=0,y=0,c=a->coefficients[k];
             for(int j=0;j<a->frame_samples;j++) {
@@ -234,6 +253,9 @@ static void spectral(const pcm_analyzer *a,const unsigned char *pcm,int start_fr
             }
             power[k]=fmax(0.0,x*x+y*y-c*x*y); total+=power[k];
         }
+#else
+        total=frame_powers(a,samples,power);
+#endif
         if(total<=0)continue;
         double top=0,ent=0,dist=0;
         for(int k=0;k<PCM_FREQ_COUNT;k++){
@@ -251,8 +273,8 @@ static void spectral(const pcm_analyzer *a,const unsigned char *pcm,int start_fr
     out->spectral_variability=rounded(mean(variation,variations),4);
     out->spectral_entropy=rounded(mean(entropy,count),4);
 }
-static void classify(const pcm_analyzer *a,const unsigned char *pcm,int start,int end,pcm_features *out) {
-    memset(out,0,sizeof(*out));out->signal=PCM_SILENCE;out->rms_mean_dbfs=-120.0;
+static void classify_features(const pcm_analyzer *a,const unsigned char *pcm,int start,int end,pcm_features *out) {
+    out->signal=PCM_SILENCE;out->rms_mean_dbfs=-120.0;
     double rms[PCM_MAX_FRAMES],crossings[PCM_MAX_FRAMES],cvs[PCM_MAX_FRAMES],differences[PCM_MAX_FRAMES];
     int count=0,cv_count=0,stable=0;
     for(int i=start;i<end;i++){
@@ -267,7 +289,7 @@ static void classify(const pcm_analyzer *a,const unsigned char *pcm,int start,in
     double rs=stddev(rms,count,rm),cs=stddev(crossings,count,cm);
     PCM_SORT(cvs,cv_count);
     double cv=cv_count ? (cv_count%2 ? cvs[cv_count/2] : (cvs[cv_count/2-1]+cvs[cv_count/2])/2.0) : 0.0;
-    spectral(a,pcm,start,end-start,out);
+    if(pcm)spectral(a,pcm,start,end-start,out);
     int tone=((double)stable/count>=0.65 && rs<1.8)||(cm<3.0&&rs<0.8&&cs<1.2&&dm<0.85);
     int noise=!tone&&cm>=34.0&&dm>=0.90;
     int music=!tone&&!noise&&count>=40&&((out->spectral_variability<0.10&&rs>=1.4)||
@@ -278,6 +300,10 @@ static void classify(const pcm_analyzer *a,const unsigned char *pcm,int start,in
     out->rms_mean_dbfs=rounded(rm,3);out->rms_std_db=rounded(rs,3);
     out->crossing_mean=rounded(cm,3);out->crossing_std=rounded(cs,3);
     out->crossing_interval_cv=rounded(cv,3);out->normalized_difference=rounded(dm,3);
+}
+static void classify(const pcm_analyzer *a,const unsigned char *pcm,int start,int end,pcm_features *out) {
+    memset(out,0,sizeof(*out));
+    classify_features(a,pcm,start,end,out);
 }
 static void append_region(pcm_analyzer *a,const unsigned char *pcm,pcm_result *r,int start,int end) {
     pcm_segment *s=&r->segments[r->all_segment_count++];memset(s,0,sizeof(*s));
@@ -347,4 +373,103 @@ int pcm_analyzer_run(pcm_analyzer *a,const unsigned char *pcm,size_t length,pcm_
     ring_finish_result(&r->ring);
     if(length<8000)r->ring.duration_ms=r->duration_ms;
     return 0;
+}
+
+#include "acoustic_stream.h"
+const char *acoustic_event_name(acoustic_event_type type) {
+    static const char *names[]={"signal.changed","ring.started","ring.ended",
+        "ring.cadence_detected","ring.interrupted","speech.started","speech.ended"};
+    return names[type];
+}
+void acoustic_stream_init(acoustic_stream *s) {
+    memset(s,0,sizeof(*s));
+    pcm_analyzer_init(&s->dsp);
+    s->dsp.incremental=1;
+    s->last_ring.rms_dbfs=s->last_ring.ac_rms_dbfs=s->last_ring.ring_level_dbfs=-120;
+}
+static void stream_event(acoustic_stream *s,acoustic_event_type type,uint64_t at,const char *reason,int period) {
+    /* A frame can produce at most seven transitions. */
+    acoustic_event *e=&s->events[s->event_count++];
+    *e=(acoustic_event){type,at,s->frames*20,s->signal,period,reason};
+}
+void acoustic_stream_frame(acoustic_stream *s,const unsigned char *pcm) {
+    s->event_count=0;
+#ifdef PCM_PREDECODE_SCRATCH
+    for(int i=0;i<160;i++)s->dsp.decoded[i]=(int16_t)sample_at(pcm,i);
+#endif
+    pcm_frame f=scan_frame(&s->dsp,&s->ring_window,pcm,160
+#ifdef PCM_PREDECODE_SCRATCH
+        ,s->dsp.decoded
+#endif
+    );
+    s->frames++;
+    int slot=(int)((s->frames-1)%ACOUSTIC_HISTORY);
+    s->history[slot]=f;
+    double *power=s->spectra[slot];
+    double total=f.active?frame_powers(&s->dsp,pcm,power):0;
+    s->spectral_valid[slot]=total>0;
+    if(total>0)for(int k=0;k<PCM_FREQ_COUNT;k++)power[k]/=total;
+    if(s->history_count<ACOUSTIC_HISTORY)s->history_count++;
+    pcm_features features={0};
+    double dominance=0,entropy=0,variation=0,*previous=NULL;
+    int count=0,changes=0;
+    for(int i=0;i<s->history_count;i++) {
+        int ix=(slot+ACOUSTIC_HISTORY-s->history_count+1+i)%ACOUSTIC_HISTORY;
+        s->dsp.frames[i]=s->history[ix];
+        if(!s->spectral_valid[ix])continue;
+        double top=0,ent=0,dist=0,*v=s->spectra[ix];
+        for(int k=0;k<PCM_FREQ_COUNT;k++) {
+            if(v[k]>top)top=v[k];
+            if(v[k]>0)ent-=v[k]*log(v[k]);
+            if(previous)dist+=fabs(v[k]-previous[k]);
+        }
+        dominance+=top;entropy+=ent/log((double)PCM_FREQ_COUNT);count++;
+        if(previous){variation+=dist/2;changes++;} previous=v;
+    }
+    features.dominant_tone_strength=rounded(count?dominance/count:0,4);
+    features.spectral_entropy=rounded(count?entropy/count:0,4);
+    features.spectral_variability=rounded(changes?variation/changes:0,4);
+    classify_features(&s->dsp,NULL,0,s->history_count,&features);
+    pcm_signal next=f.active?features.signal:PCM_SILENCE;
+    if(next==s->candidate)s->candidate_frames++;else{s->candidate=next;s->candidate_frames=1;}
+    /* Debounce transitions; times are confirmation times, never backdated. */
+    if(next!=s->signal&&s->candidate_frames>=(next==PCM_SILENCE?6:3)) {
+        if(s->speech){s->speech=0;stream_event(s,AS_SPEECH_END,s->frames*20,"classification_changed",0);}
+        s->signal=next;
+        stream_event(s,AS_SIGNAL,s->frames*20,"classification_changed",0);
+        if(next==PCM_VOICE){s->speech=1;stream_event(s,AS_SPEECH_START,s->frames*20,"voice_like",0);}
+    }
+    if(s->ring_window.frame_count) {
+        s->last_ring=s->ring_window.frames[0];
+        int ring=s->last_ring.state==1;
+        uint64_t now=s->frames*20;
+        if(ring) {
+            s->other_windows=0;
+            if(!s->ring_active) {s->pulse_start=now-500;s->ring_active=1;}
+            if(now-s->pulse_start>=1000&&!s->ring_seen) {
+                s->ring_seen=1;s->interrupted=0;
+                stream_event(s,AS_RING_START,now,"qualified_tone",0);
+                if(s->previous_pulse&&s->pulse_start+1-s->previous_pulse>=4400&&s->pulse_start+1-s->previous_pulse<=6600) {
+                    if(!s->cadence)stream_event(s,AS_CADENCE,now,"compatible_period",(int)(s->pulse_start+1-s->previous_pulse));
+                    s->cadence=1;
+                } else s->cadence=0;
+                s->previous_pulse=s->pulse_start+1; /* +1 encodes time zero */
+            }
+        } else {
+            if(s->ring_active) {
+                s->pulse_end=now-500;
+                if(s->ring_seen)stream_event(s,AS_RING_END,now,"tone_ended",0);
+                s->ring_seen=0;s->ring_active=0;
+            }
+            if(s->last_ring.state==2)s->other_windows++;else s->other_windows=0;
+            if(s->previous_pulse&&!s->interrupted&&
+                ((s->other_windows>=1&&now>=s->pulse_end+1000)||
+                 (s->cadence&&now>s->previous_pulse-1+7100))) {
+                s->interrupted=1;s->cadence=0;
+                stream_event(s,AS_INTERRUPTED,now,s->other_windows?"other_audio":"cadence_timeout",0);
+            }
+        }
+        /* Only the recurrence survives; no complete PCM window is retained. */
+        memset(&s->ring_window,0,sizeof(s->ring_window));
+    }
 }

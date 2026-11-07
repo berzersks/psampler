@@ -145,3 +145,6 @@ perf-flat.txt
 /perf-pcm-c-flat.txt
 /bench/results/pcm-standalone-*/*.data*
 /tests/__pycache__/
+
+# Small articulated laboratory speech fixture for streaming acoustic tests.
+!tests/acoustic-fixtures/speech.pcm

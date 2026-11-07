@@ -21,6 +21,8 @@
 #include "TSRM.h"
 #endif
 
+#include "acoustic_stream_zend.inc"
+
 static zend_class_entry *psampler_ce;
 static zend_class_entry *lpcm_ce;
 static zend_class_entry *pcm_analyzer_ce;
@@ -1046,6 +1048,7 @@ PHP_MINIT_FUNCTION(psampler)
     INIT_CLASS_ENTRY(ce, "PCMAnalyzer", pcm_analyzer_methods);
     pcm_analyzer_ce = zend_register_internal_class(&ce);
     pcm_analyzer_ce->create_object = pcm_analyzer_create;
+    acoustic_register();
     
     return SUCCESS;
 }

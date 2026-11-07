@@ -24,5 +24,7 @@ add_executable(psampler
         psampler_resample.h
         psampler.c
         pcm_analyzer.c
+        acoustic_stream.h
+        acoustic_stream_zend.inc
         pcm_analyzer.h
         README.md)

@@ -782,3 +782,22 @@ ffplay output_48000hz_stereo.wav
 ## Licença
 
 Mesma licença do projeto original.
+
+## AcousticStreamAnalyzer: análise incremental orientada a eventos
+
+`AcousticStreamAnalyzer` recebe PCM16LE mono 8 kHz em blocos variáveis e mantém
+estado entre `push()` sem reanalisar áudio antigo. Oferece eventos de ring,
+cadência, perturbação, fala provável e mudança de sinal, com DSP em C.
+
+```php
+$analyzer = new AcousticStreamAnalyzer(sampleRate: 8000, frameDurationMs: 20);
+$analyzer->on('ring.started', function (array $event) { var_dump($event); });
+$analyzer->on('speech.started', function (array $event) { var_dump($event); });
+$analyzer->push($pcm);
+$state = $analyzer->state();
+$analyzer->reset(); // preserva callbacks
+```
+
+Veja [API, eventos, arquitetura, limites e testes manuais](docs/acoustic-stream-analyzer.md).
+Implementação inicial: compilação, testes nativos, regressões e validação acústica
+em corpus real ainda pendentes.

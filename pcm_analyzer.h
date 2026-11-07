@@ -61,6 +61,7 @@ typedef struct {
 } pcm_result;
 typedef struct {
     int sample_rate, frame_duration_ms, frame_samples, frame_bytes;
+    int incremental; /* Internal streaming path also works with benchmark flags. */
     double coefficients[PCM_FREQ_COUNT];
     pcm_frame frames[PCM_MAX_FRAMES];
     pcm_ring_number ring_coefficients[PCM_RING_BINS];
