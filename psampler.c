@@ -1102,6 +1102,10 @@ PHP_MINFO_FUNCTION(psampler)
         "reset(int sampleRate, int channels): void, toString(): string, toMono(): PcmBuffer, "
         "toStereo(): PcmBuffer, resample(int sampleRate): PcmBuffer, "
         "canInvoke(string operation): bool, invoke(string operation, mixed ...args): mixed");
+    php_info_print_table_row(2, "AcousticStreamAnalyzer",
+        "__construct(int sampleRate=8000, int frameDurationMs=20), "
+        "on(string event, callable callback): AcousticStreamAnalyzer, "
+        "push(string pcm): void, state(): array, reset(): void");
     php_info_print_table_row(2, "PCMAnalyzer",
         "__construct(int sampleRate=8000, int frameDurationMs=20), analyze(string pcm): array");
     php_info_print_table_end();
