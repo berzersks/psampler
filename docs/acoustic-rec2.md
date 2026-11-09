@@ -13,7 +13,7 @@ AM attacks have varying RMS, so the old amplitude-stability condition fails and
 historical features may label the attack voice_like. Crossings locate a carrier;
 a projection against all frame AC energy verifies >=80% concentration. Three
 recent regular frames allow 4% carrier drift during onset, or two coherent frames
-allow <1.5% drift. These additional onset vetoes apply before established voice;
+allow <1.5% drift, unless an earlier regular frame contradicts that carrier. These additional onset vetoes apply before established voice;
 the previous 1.5% three-frame rule remains in effect during established speech.
 This preserves approved postal speech transitions without extending voice debounce.
 

@@ -18,6 +18,8 @@ foreach ([0,1,7,19,40,80,110,200] as $offset) {
  $starts=array_column(array_values(array_filter($events,fn($e)=>$e['type']==='speech.started')),'at_ms');
  check(countEvent($events,'ring.started')===6,"real ring starts offset $offset");
  check(countEvent($events,'ring.ended')===6,"real ring ends offset $offset");
+ check(countEvent($events,'ring.interrupted')===1,"real interruption $offset");
+ if($offset===0) check($starts===[31200,44520,44800,46920],'approved postal speech transitions');
  check(countEvent($events,'ring.cadence_detected')>=1,"real cadence $offset");
  foreach($starts as $t) check($t+$offset<33333 || $t+$offset>33600,"real beep $offset");
  $rows[]=['offset_ms'=>$offset,'speech_absolute_ms'=>array_map(fn($t)=>$t+$offset,$starts)];

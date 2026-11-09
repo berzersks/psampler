@@ -24,6 +24,7 @@ foreach([0,1,7,19,40,80,110,200,270,330,499] as $shift){
  check(countEvent($e,'ring.interrupted')===1,"one real interruption shift $shift");
  $starts=array_column(array_values(array_filter($e,fn($v)=>$v['type']==='speech.started')),'at_ms');
  check(count($starts)>0,'real speech');
+ if($shift===0)check($starts[0]===14240,'preserve true speech confirmation latency');
  foreach($starts as $t)check($t-$shift>=14100 && $t-$shift<16400,"tone is not speech shift $shift at $t");
 }
 // Every sample phase of the problematic attacks; no inherited complete windows.

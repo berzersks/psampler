@@ -2,7 +2,7 @@
 
 Análise acústica incremental em C, PCM16LE mono a 8000 Hz. Sem dependências
 operacionais de libspech, SIP, RTP, codecs, bancos ou serviços externos.
-Esta implementação inicial ainda precisa ser compilada e validada em execução.
+Validação e política atual de duração: [regressão rec2](acoustic-rec2.md).
 
 ```php
 $a = new AcousticStreamAnalyzer(sampleRate: 8000, frameDurationMs: 20);
@@ -43,8 +43,8 @@ ordem de confirmação acústica. Não há array Zend criado para cada quadro.
 | Evento | Evidência |
 |---|---|
 | `signal.changed` | Nova classificação estável: silence, narrowband_tone, noise, music_like, voice_like ou other_audio. |
-| `ring.started` | Duas janelas consecutivas de 500 ms qualificadas como tom de ring; independe de cadência anterior. |
-| `ring.ended` | Primeira janela de 500 ms sem ring após um pulso qualificado. |
+| `ring.started` | 750 ms de portadora coerente em frames de 20 ms, com confirmação espectral da janela de 500 ms; independe de cadência anterior. |
+| `ring.ended` | Primeiro frame de 20 ms sem portadora após um pulso qualificado. |
 | `ring.cadence_detected` | Segundo pulso qualificado com período compatível; uma emissão ao entrar no estado de cadência. |
 | `ring.interrupted` | Outro áudio fora da margem protegida após ring, ou ausência de novo pulso após cadência confirmada. Não implica fala. |
 | `speech.started` | Entrada estável em voice_like, inclusive sem ring anterior. Não implica gravação. |
@@ -152,7 +152,7 @@ não há acumuladores globais mutáveis, inclusive em PHP ZTS.
   confundir classificação; não é ASR, VAD treinado ou detector de gravação.
 - A janela de features inclui até um segundo de contexto: mudanças e misturas
   podem retardar ou oscilar a classificação, mesmo com debounce.
-- Ring tem resolução de 500 ms e exige 1 s qualificado. Pulsos curtos ou bordas
+- Ring mede duração em frames de 20 ms e exige 750 ms coerentes e validação espectral de 500 ms. Pulsos curtos ou bordas
   desalinhadas podem não qualificar; sinais misturados podem perder pureza.
 - Timeout não cobre um pulso contínuo excessivamente longo enquanto continua
   qualificado como tom. ring.started indica tom compatível, não prova cadência.

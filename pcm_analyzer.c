@@ -497,7 +497,8 @@ void acoustic_stream_frame(acoustic_stream *s,const unsigned char *pcm) {
         double high=fmax(f.tone_hz,fmax(p.tone_hz,q.tone_hz));
         if((low>0 && high<low*1.015) ||
            (s->signal!=PCM_VOICE && ((low>0 && high<low*1.04) ||
-            (p.coherent_tone && fabs(f.tone_hz-p.tone_hz)<0.015*f.tone_hz))))
+            (p.coherent_tone && fabs(f.tone_hz-p.tone_hz)<0.015*f.tone_hz &&
+             (q.tone_hz==0 || fabs(f.tone_hz-q.tone_hz)<0.04*f.tone_hz)))))
             next=PCM_TONE;
     }
     if(next==s->candidate)s->candidate_frames++;else{s->candidate=next;s->candidate_frames=1;}
