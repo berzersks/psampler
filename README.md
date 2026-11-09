@@ -801,3 +801,5 @@ $analyzer->reset(); // preserva callbacks
 Veja [API, eventos, arquitetura, limites e testes manuais](docs/acoustic-stream-analyzer.md).
 Implementação inicial: compilação, testes nativos, regressões e validação acústica
 em corpus real ainda pendentes.
+
+Acoustic DSP duration policy, regression recordings and validation: [rec2 notes](docs/acoustic-rec2.md).

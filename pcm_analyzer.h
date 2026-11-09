@@ -31,9 +31,9 @@ typedef struct {
 
 typedef enum { PCM_SILENCE, PCM_TONE, PCM_NOISE, PCM_MUSIC, PCM_VOICE, PCM_OTHER } pcm_signal;
 typedef struct {
-    double rms_dbfs, crossing_cv, difference;
+    double rms_dbfs, crossing_cv, difference, tone_hz;
     int crossings;
-    unsigned char active;
+    unsigned char active, coherent_tone;
 } pcm_frame;
 typedef struct {
     pcm_signal signal;
@@ -67,6 +67,8 @@ typedef struct {
     pcm_ring_number ring_coefficients[PCM_RING_BINS];
     double ring_hann[PCM_RING_SAMPLES];
     pcm_ring_number ring_x[PCM_RING_BINS], ring_y[PCM_RING_BINS];
+    /* Bounded current window for off-grid peak refinement; never past audio. */
+    int16_t ring_samples[PCM_RING_SAMPLES];
     double ring_squares;
     double ring_sum;
     int ring_sample_index;

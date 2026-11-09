@@ -44,6 +44,34 @@ static double ring_level(const pcm_analyzer *a,int bin) {
     double amplitude=4.0*sqrt(power)/PCM_RING_SAMPLES;
     return amplitude>0.0 ? fmax(-120.0,fmin(0.0,20.0*log10(amplitude/32768.0))) : -120.0;
 }
+/* Evaluate the same Hann amplitude at a continuous frequency. The coarse
+ * bank locates a peak; two local log-parabolic fits remove its grid loss.
+ * Work is bounded to the current 500 ms window, and gated away on silence. */
+static double ring_refined_level(const pcm_analyzer *a,double hz) {
+    double x=0,y=0,c=2*cos(2*M_PI*hz/8000.0);
+    for(int j=0;j<PCM_RING_SAMPLES;j++) {
+        double next=a->ring_samples[j]*a->ring_hann[j]+c*x-y;
+        y=x;x=next;
+    }
+    double power=fmax(0.0,x*x+y*y-c*x*y);
+    return power>0 ? 20*log10(4*sqrt(power)/(PCM_RING_SAMPLES*32768.0)) : -120;
+}
+static void ring_refine(const pcm_analyzer *a,double *frequency,double *level) {
+    double center=*frequency;
+    for(int iteration=0;iteration<2;iteration++) {
+        double h=iteration?0.5:1.0;
+        double left=ring_refined_level(a,center-h);
+        double middle=ring_refined_level(a,center);
+        double right=ring_refined_level(a,center+h);
+        double curvature=left-2*middle+right;
+        if(curvature>=-1e-9)break;
+        double offset=0.5*h*(left-right)/curvature;
+        center+=fmax(-2.5,fmin(2.5,offset));
+        center=fmax(395.0,fmin(460.0,center));
+    }
+    double refined=ring_refined_level(a,center);
+    if(refined>*level){*frequency=center;*level=fmin(0.0,refined);}
+}
 #if defined(PCM_RING_STAGED_EXPERIMENT) || defined(PCM_RING_FULL_TWO_PASS_EXPERIMENT) || defined(PCM_RING_ALL_TWO_PASS_EXPERIMENT)
 /* Experimental second read; ringstage skips bins and loses diagnostics. */
 static void ring_bank_pass(pcm_analyzer *a,int frame,int first,int count) {
@@ -92,6 +120,9 @@ static void ring_finish_frame(pcm_analyzer *a,pcm_ring_result *r) {
 #ifdef PCM_RING_FULL_TWO_PASS_EXPERIMENT
     if(!a->incremental)ring_bank_pass(a,r->frame_count,14,10);
 #endif
+    /* -12 dB is only a work gate, never the acceptance threshold. Even the
+     * midpoint of the 5 Hz grid lies inside this range for a Hann tone. */
+    if(best>=-60.0 && best-ac_dbfs>=-12.0)ring_refine(a,&frequency,&best);
     for(int i=0;i<10;i++)background[i]=ring_level(a,i+14);
     PCM_SORT(background,10);
     f->ring_frequency_hz=frequency;f->ring_level_dbfs=best;
@@ -113,6 +144,7 @@ static void ring_finish_frame(pcm_analyzer *a,pcm_ring_result *r) {
 static void ring_sample(pcm_analyzer *a,pcm_ring_result *r,int sample){
     int at=a->ring_sample_index;
     if(r->frame_count>=PCM_RING_FRAMES)return;
+    a->ring_samples[at]=(int16_t)sample;
 #ifndef PCM_DISABLE_ZERO_SKIP
     /* Zero input with zero state leaves every resonator at zero. */
     if(sample==0&&a->ring_squares==0.0){
@@ -181,7 +213,7 @@ static pcm_frame scan_frame(pcm_analyzer *a,pcm_ring_result *r,const unsigned ch
 #endif
 ) {
     pcm_frame out={0}; double squares=0,sum=0,absolutes=0,difference=0;
-    double intervals[160]; int interval_count=0,last_cross=-1,previous=0;
+    double intervals[160],first_fraction=0,last_fraction=0; int interval_count=0,last_cross=-1,previous=0;
     for(int i=0;i<n;i++) {
 #ifdef PCM_PREDECODE_SCRATCH
         int sample=decoded[i];
@@ -198,6 +230,9 @@ static pcm_frame scan_frame(pcm_analyzer *a,pcm_ring_result *r,const unsigned ch
             difference+=abs(sample-previous);
             if(previous<=0 && sample>0) {
                 if(last_cross>=0) intervals[interval_count++]=i-last_cross;
+                double crossing=i-1-(double)previous/(sample-previous);
+                if(last_cross<0)first_fraction=crossing;
+                last_fraction=crossing;
                 last_cross=i; out.crossings++;
             }
         }
@@ -209,6 +244,21 @@ static pcm_frame scan_frame(pcm_analyzer *a,pcm_ring_result *r,const unsigned ch
     out.crossing_cv=interval_mean>0 ? stddev(intervals,interval_count,interval_mean)/interval_mean : -1.0;
     out.difference=absolutes>0 ? difference/absolutes : 0.0;
     out.active=out.rms_dbfs>=-42.0;
+    /* Stable crossing intervals locate a candidate independently of amplitude.
+     * Verify concentration against ALL AC energy, not the sparse spectral bank
+     * (whose relative powers can be misleading between its probe frequencies).
+     * A modulated carrier remains coherent; a multi-harmonic vowel usually does
+     * not. This bounded pass runs only for active, regular waveforms. */
+    if(out.active && interval_count>=3 && out.crossing_cv<0.12) {
+        double hz=8000.0*interval_count/(last_fraction-first_fraction);
+        out.tone_hz=hz;
+        double c=2*cos(2*M_PI*hz/8000.0),x=0,y=0;
+        for(int j=0;j<n;j++) {
+            double next=sample_at(pcm,(size_t)j)-dc+c*x-y;y=x;x=next;
+        }
+        double power=fmax(0.0,x*x+y*y-c*x*y);
+        out.coherent_tone=2*power>=0.80*n*(squares-n*dc*dc);
+    }
     return out;
 }
 static double frame_powers(const pcm_analyzer *a,const unsigned char *samples,double *power) {
@@ -276,9 +326,12 @@ static void spectral(const pcm_analyzer *a,const unsigned char *pcm,int start_fr
 static void classify_features(const pcm_analyzer *a,const unsigned char *pcm,int start,int end,pcm_features *out) {
     out->signal=PCM_SILENCE;out->rms_mean_dbfs=-120.0;
     double rms[PCM_MAX_FRAMES],crossings[PCM_MAX_FRAMES],cvs[PCM_MAX_FRAMES],differences[PCM_MAX_FRAMES];
-    int count=0,cv_count=0,stable=0;
+    int count=0,cv_count=0,stable=0,coherent=0;
+    double carrier_low=4000,carrier_high=0;
     for(int i=start;i<end;i++){
         pcm_frame f=a->frames[i];if(!f.active)continue;
+        coherent+=f.coherent_tone;
+        if(f.coherent_tone){carrier_low=fmin(carrier_low,f.tone_hz);carrier_high=fmax(carrier_high,f.tone_hz);}
         if(count==0)out->first_active_ms=(i-start)*20;
         rms[count]=f.rms_dbfs;crossings[count]=f.crossings;differences[count]=f.difference;count++;
         if(f.crossing_cv>=0){ cvs[cv_count++]=f.crossing_cv;if(f.crossing_cv<0.12)stable++; }
@@ -290,7 +343,8 @@ static void classify_features(const pcm_analyzer *a,const unsigned char *pcm,int
     PCM_SORT(cvs,cv_count);
     double cv=cv_count ? (cv_count%2 ? cvs[cv_count/2] : (cvs[cv_count/2-1]+cvs[cv_count/2])/2.0) : 0.0;
     if(pcm)spectral(a,pcm,start,end-start,out);
-    int tone=((double)stable/count>=0.65 && rs<1.8)||(cm<3.0&&rs<0.8&&cs<1.2&&dm<0.85);
+    int tone=(!a->incremental && (double)coherent/count>=0.50 &&
+        (double)stable/count>=0.65 && carrier_high<carrier_low*1.015)||((double)stable/count>=0.65 && rs<1.8)||(cm<3.0&&rs<0.8&&cs<1.2&&dm<0.85);
     int noise=!tone&&cm>=34.0&&dm>=0.90;
     int music=!tone&&!noise&&count>=40&&((out->spectral_variability<0.10&&rs>=1.4)||
         (out->spectral_variability<0.20&&cs<1.5&&out->dominant_tone_strength>=0.70&&out->spectral_entropy>=0.35)||
@@ -431,6 +485,21 @@ void acoustic_stream_frame(acoustic_stream *s,const unsigned char *pcm) {
     features.spectral_variability=rounded(changes?variation/changes:0,4);
     classify_features(&s->dsp,NULL,0,s->history_count,&features);
     pcm_signal next=f.active?features.signal:PCM_SILENCE;
+    /* Carrier evidence is local, independent of historical RMS variation.
+     * Modulated network tones allow 4% drift over three regular frames.
+     * Two coherent neighbours with <1.5% drift also veto pending voice.
+     * These attack vetoes do not fragment an already established locution.
+     * The current frame must still concentrate >=80% of all AC energy. */
+    if(f.coherent_tone && s->history_count>=3) {
+        pcm_frame p=s->history[(slot+ACOUSTIC_HISTORY-1)%ACOUSTIC_HISTORY];
+        pcm_frame q=s->history[(slot+ACOUSTIC_HISTORY-2)%ACOUSTIC_HISTORY];
+        double low=fmin(f.tone_hz,fmin(p.tone_hz,q.tone_hz));
+        double high=fmax(f.tone_hz,fmax(p.tone_hz,q.tone_hz));
+        if((low>0 && high<low*1.015) ||
+           (s->signal!=PCM_VOICE && ((low>0 && high<low*1.04) ||
+            (p.coherent_tone && fabs(f.tone_hz-p.tone_hz)<0.015*f.tone_hz))))
+            next=PCM_TONE;
+    }
     if(next==s->candidate)s->candidate_frames++;else{s->candidate=next;s->candidate_frames=1;}
     /* Debounce transitions; times are confirmation times, never backdated. */
     if(next!=s->signal&&s->candidate_frames>=(next==PCM_SILENCE?6:3)) {
@@ -439,37 +508,39 @@ void acoustic_stream_frame(acoustic_stream *s,const unsigned char *pcm) {
         stream_event(s,AS_SIGNAL,s->frames*20,"classification_changed",0);
         if(next==PCM_VOICE){s->speech=1;stream_event(s,AS_SPEECH_START,s->frames*20,"voice_like",0);}
     }
-    if(s->ring_window.frame_count) {
-        s->last_ring=s->ring_window.frames[0];
-        int ring=s->last_ring.state==1;
-        uint64_t now=s->frames*20;
-        if(ring) {
-            s->other_windows=0;
-            if(!s->ring_active) {s->pulse_start=now-500;s->ring_active=1;}
-            if(now-s->pulse_start>=1000&&!s->ring_seen) {
-                s->ring_seen=1;s->interrupted=0;
-                stream_event(s,AS_RING_START,now,"qualified_tone",0);
-                if(s->previous_pulse&&s->pulse_start+1-s->previous_pulse>=4400&&s->pulse_start+1-s->previous_pulse<=6600) {
-                    if(!s->cadence)stream_event(s,AS_CADENCE,now,"compatible_period",(int)(s->pulse_start+1-s->previous_pulse));
-                    s->cadence=1;
-                } else s->cadence=0;
-                s->previous_pulse=s->pulse_start+1; /* +1 encodes time zero */
-            }
-        } else {
-            if(s->ring_active) {
-                s->pulse_end=now-500;
-                if(s->ring_seen)stream_event(s,AS_RING_END,now,"tone_ended",0);
-                s->ring_seen=0;s->ring_active=0;
-            }
-            if(s->last_ring.state==2)s->other_windows++;else s->other_windows=0;
-            if(s->previous_pulse&&!s->interrupted&&
-                ((s->other_windows>=1&&now>=s->pulse_end+1000)||
-                 (s->cadence&&now>s->previous_pulse-1+7100))) {
-                s->interrupted=1;s->cadence=0;
-                stream_event(s,AS_INTERRUPTED,now,s->other_windows?"other_audio":"cadence_timeout",0);
-            }
+    /* Qualify duration on the 20 ms carrier timeline, not on quantized
+     * 500 ms labels. The long Hann bank still verifies level and purity.
+     * 750 ms admits short network ringbacks (rec2 starts with ~0.8 s).
+     * Boundaries are frame observations; event times are confirmations. */
+    uint64_t now=s->frames*20;
+    int carrier=f.coherent_tone && f.tone_hz>=394.5 && f.tone_hz<=460.5;
+    if(s->ring_window.frame_count) s->last_ring=s->ring_window.frames[0];
+    if(carrier) {
+        if(!s->ring_active){s->pulse_start=now-20;s->ring_active=1;}
+        if(!s->ring_seen && now-s->pulse_start>=750 && s->last_ring.state==1) {
+            s->ring_seen=1;s->interrupted=0;s->other_windows=0;
+            stream_event(s,AS_RING_START,now,"qualified_tone",0);
+            uint64_t period=s->pulse_start+1-s->previous_pulse;
+            if(s->previous_pulse && period>=4400 && period<=6600) {
+                if(!s->cadence)stream_event(s,AS_CADENCE,now,"compatible_period",(int)period);
+                s->cadence=1;
+            } else s->cadence=0;
+            s->previous_pulse=s->pulse_start+1;
         }
-        /* Only the recurrence survives; no complete PCM window is retained. */
+    } else if(s->ring_active) {
+        s->pulse_end=now-20;
+        if(s->ring_seen)stream_event(s,AS_RING_END,now,"tone_ended",0);
+        s->ring_seen=0;s->ring_active=0;
+    }
+    if(s->ring_window.frame_count) {
+        if(s->ring_seen || carrier)s->other_windows=0;
+        else if(s->last_ring.state==2)s->other_windows++;else s->other_windows=0;
+        if(s->previous_pulse&&!s->interrupted&&!s->ring_active&&
+            ((s->other_windows>=1&&now>=s->pulse_end+1000)||
+             (s->cadence&&now>s->previous_pulse-1+7100))) {
+            s->interrupted=1;s->cadence=0;
+            stream_event(s,AS_INTERRUPTED,now,s->other_windows?"other_audio":"cadence_timeout",0);
+        }
         memset(&s->ring_window,0,sizeof(s->ring_window));
     }
 }
