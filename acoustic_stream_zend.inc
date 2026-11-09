@@ -142,6 +142,9 @@ PHP_METHOD(AcousticStreamAnalyzer,state) {
     add_assoc_long(return_value,"processed_ms",(zend_long)(s->frames*20));
     add_assoc_long(return_value,"pending_bytes",s->pending_bytes);
     add_assoc_string(return_value,"signal",(char *)pcm_signal_name(s->signal));
+    /* Existing per-frame classification, before transition debounce. Consumers
+     * must not count debounced speech hangover as qualified vocal activity. */
+    add_assoc_string(return_value,"frame_signal",(char *)pcm_signal_name(s->candidate));
     add_assoc_bool(return_value,"speech_active",s->speech);
     add_assoc_bool(return_value,"ring_active",s->ring_seen);
     add_assoc_bool(return_value,"cadence_detected",s->cadence);

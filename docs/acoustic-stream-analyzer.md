@@ -62,9 +62,16 @@ notificação em até uma janela ou mais, conforme a regra de confirmação.
 compatible_period, other_audio ou cadence_timeout. São evidências acústicas.
 Não há decisões sobre atendimento, encerramento, faturamento ou caixa postal.
 
-`state()` retorna processed_ms (quadros completos), pending_bytes, signal,
+`state()` retorna processed_ms (quadros completos), pending_bytes, signal, frame_signal,
 speech_active, ring_active (pulso qualificado), cadence_detected,
 ring_interrupted, ring_frequency_hz, ring_level_dbfs e ring_ac_rms_dbfs.
+`frame_signal` expõe a classificação candidata do último quadro, já calculada
+pelo DSP, antes do debounce. `signal` é a classificação estável; `speech_active`
+pode permanecer verdadeiro durante a confirmação de saída. Para medir atividade
+vocal efetiva, não conte o tempo entre speech.started/speech.ended como voz: use
+os quadros candidatos (e, conservadoramente, a classe estável) e uma política
+separada. Publicar esse campo não altera DSP, limiares ou eventos.
+
 Diagnósticos de ring refletem a última janela completa de 500 ms. Antes dela,
 níveis são −120 dBFS e frequência é zero. A classificação começa em silence.
 
