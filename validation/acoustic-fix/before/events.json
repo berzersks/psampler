@@ -1,0 +1,274 @@
+[
+    {
+        "type": "signal.changed",
+        "at_ms": 160,
+        "detected_at_ms": 160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 1240,
+        "detected_at_ms": 1240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 1240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 5160,
+        "detected_at_ms": 5160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 5160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 6240,
+        "detected_at_ms": 6240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 6240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 10160,
+        "detected_at_ms": 10160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 10160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 11240,
+        "detected_at_ms": 11240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 11240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 15160,
+        "detected_at_ms": 15160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 15160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 16240,
+        "detected_at_ms": 16240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 16240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 20160,
+        "detected_at_ms": 20160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 20160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 21240,
+        "detected_at_ms": 21240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 21240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 25160,
+        "detected_at_ms": 25160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 25160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 26240,
+        "detected_at_ms": 26240,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 26240
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 30160,
+        "detected_at_ms": 30160,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 30160
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 30460,
+        "detected_at_ms": 30460,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 30460
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 31200,
+        "detected_at_ms": 31200,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 31200
+    },
+    {
+        "type": "speech.started",
+        "at_ms": 31200,
+        "detected_at_ms": 31200,
+        "signal": "voice_like",
+        "reason": "voice_like",
+        "push_end_ms": 31200
+    },
+    {
+        "type": "speech.ended",
+        "at_ms": 33020,
+        "detected_at_ms": 33020,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 33020
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 33020,
+        "detected_at_ms": 33020,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 33020
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 33400,
+        "detected_at_ms": 33400,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 33400
+    },
+    {
+        "type": "speech.started",
+        "at_ms": 33400,
+        "detected_at_ms": 33400,
+        "signal": "voice_like",
+        "reason": "voice_like",
+        "push_end_ms": 33400
+    },
+    {
+        "type": "speech.ended",
+        "at_ms": 33600,
+        "detected_at_ms": 33600,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 33600
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 33600,
+        "detected_at_ms": 33600,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 33600
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 37260,
+        "detected_at_ms": 37260,
+        "signal": "narrowband_tone",
+        "reason": "classification_changed",
+        "push_end_ms": 37260
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 37540,
+        "detected_at_ms": 37540,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 37540
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 44520,
+        "detected_at_ms": 44520,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 44520
+    },
+    {
+        "type": "speech.started",
+        "at_ms": 44520,
+        "detected_at_ms": 44520,
+        "signal": "voice_like",
+        "reason": "voice_like",
+        "push_end_ms": 44520
+    },
+    {
+        "type": "speech.ended",
+        "at_ms": 44720,
+        "detected_at_ms": 44720,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 44720
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 44720,
+        "detected_at_ms": 44720,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 44720
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 44800,
+        "detected_at_ms": 44800,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 44800
+    },
+    {
+        "type": "speech.started",
+        "at_ms": 44800,
+        "detected_at_ms": 44800,
+        "signal": "voice_like",
+        "reason": "voice_like",
+        "push_end_ms": 44800
+    },
+    {
+        "type": "speech.ended",
+        "at_ms": 46700,
+        "detected_at_ms": 46700,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 46700
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 46700,
+        "detected_at_ms": 46700,
+        "signal": "silence",
+        "reason": "classification_changed",
+        "push_end_ms": 46700
+    },
+    {
+        "type": "signal.changed",
+        "at_ms": 46920,
+        "detected_at_ms": 46920,
+        "signal": "voice_like",
+        "reason": "classification_changed",
+        "push_end_ms": 46920
+    },
+    {
+        "type": "speech.started",
+        "at_ms": 46920,
+        "detected_at_ms": 46920,
+        "signal": "voice_like",
+        "reason": "voice_like",
+        "push_end_ms": 46920
+    }
+]

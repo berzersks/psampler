@@ -1,0 +1,75 @@
+[
+    {
+        "offset_ms": 0,
+        "speech_absolute_ms": [
+            31200,
+            44520,
+            44800,
+            46920
+        ]
+    },
+    {
+        "offset_ms": 1,
+        "speech_absolute_ms": [
+            31201,
+            44501,
+            44801,
+            46921
+        ]
+    },
+    {
+        "offset_ms": 7,
+        "speech_absolute_ms": [
+            31187,
+            37347,
+            44567,
+            44807,
+            46927
+        ]
+    },
+    {
+        "offset_ms": 19,
+        "speech_absolute_ms": [
+            31199,
+            44519,
+            44799,
+            46919
+        ]
+    },
+    {
+        "offset_ms": 40,
+        "speech_absolute_ms": [
+            31200,
+            44520,
+            44800,
+            46920
+        ]
+    },
+    {
+        "offset_ms": 80,
+        "speech_absolute_ms": [
+            31200,
+            44520,
+            44800,
+            46920
+        ]
+    },
+    {
+        "offset_ms": 110,
+        "speech_absolute_ms": [
+            31190,
+            44510,
+            44810,
+            46930
+        ]
+    },
+    {
+        "offset_ms": 200,
+        "speech_absolute_ms": [
+            31200,
+            44520,
+            44800,
+            46920
+        ]
+    }
+]

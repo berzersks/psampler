@@ -1,0 +1,1265 @@
+{
+    "synthetic": [
+        {
+            "frequency": 425,
+            "events": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1120,
+                    "detected_at_ms": 1120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5060,
+                    "detected_at_ms": 5060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6120,
+                    "detected_at_ms": 6120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                }
+            ],
+            "ring_frames": [
+                {
+                    "index": 0,
+                    "start_ms": 0,
+                    "end_ms": 500,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 425,
+                    "ring_level_dbfs": -11.26,
+                    "prominence_db": 108.74,
+                    "tone_purity_db": 3.01
+                },
+                {
+                    "index": 1,
+                    "start_ms": 500,
+                    "end_ms": 1000,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 425,
+                    "ring_level_dbfs": -11.26,
+                    "prominence_db": 108.74,
+                    "tone_purity_db": 3.01
+                }
+            ]
+        },
+        {
+            "frequency": 426.349585,
+            "events": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1120,
+                    "detected_at_ms": 1120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5060,
+                    "detected_at_ms": 5060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6120,
+                    "detected_at_ms": 6120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                }
+            ],
+            "ring_frames": [
+                {
+                    "index": 0,
+                    "start_ms": 0,
+                    "end_ms": 500,
+                    "state": "ring",
+                    "rms_dbfs": -14.28,
+                    "ac_rms_dbfs": -14.28,
+                    "ring_frequency_hz": 426.3499729034532,
+                    "ring_level_dbfs": -11.26,
+                    "prominence_db": 108.74,
+                    "tone_purity_db": 3.01
+                },
+                {
+                    "index": 1,
+                    "start_ms": 500,
+                    "end_ms": 1000,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 426.3499726543127,
+                    "ring_level_dbfs": -11.27,
+                    "prominence_db": 108.73,
+                    "tone_purity_db": 3.01
+                }
+            ]
+        },
+        {
+            "frequency": 427.5,
+            "events": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1120,
+                    "detected_at_ms": 1120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5060,
+                    "detected_at_ms": 5060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6120,
+                    "detected_at_ms": 6120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                }
+            ],
+            "ring_frames": [
+                {
+                    "index": 0,
+                    "start_ms": 0,
+                    "end_ms": 500,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 427.41081343037837,
+                    "ring_level_dbfs": -11.28,
+                    "prominence_db": 108.72,
+                    "tone_purity_db": 3
+                },
+                {
+                    "index": 1,
+                    "start_ms": 500,
+                    "end_ms": 1000,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 427.41081342450235,
+                    "ring_level_dbfs": -11.28,
+                    "prominence_db": 108.72,
+                    "tone_purity_db": 3
+                }
+            ]
+        },
+        {
+            "frequency": 430,
+            "events": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1120,
+                    "detected_at_ms": 1120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5060,
+                    "detected_at_ms": 5060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6120,
+                    "detected_at_ms": 6120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                }
+            ],
+            "ring_frames": [
+                {
+                    "index": 0,
+                    "start_ms": 0,
+                    "end_ms": 500,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 430.00000001122874,
+                    "ring_level_dbfs": -11.27,
+                    "prominence_db": 108.73,
+                    "tone_purity_db": 3.01
+                },
+                {
+                    "index": 1,
+                    "start_ms": 500,
+                    "end_ms": 1000,
+                    "state": "ring",
+                    "rms_dbfs": -14.27,
+                    "ac_rms_dbfs": -14.27,
+                    "ring_frequency_hz": 430.00000001122874,
+                    "ring_level_dbfs": -11.27,
+                    "prominence_db": 108.73,
+                    "tone_purity_db": 3.01
+                }
+            ]
+        }
+    ],
+    "excerpts": [
+        {
+            "offset_ms": 0,
+            "events_relative_ms": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 160,
+                    "detected_at_ms": 160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1240,
+                    "detected_at_ms": 1240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5160,
+                    "detected_at_ms": 5160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6240,
+                    "detected_at_ms": 6240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 10160,
+                    "detected_at_ms": 10160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 11000,
+                    "detected_at_ms": 11000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 11240,
+                    "detected_at_ms": 11240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 11500,
+                    "detected_at_ms": 11500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 15160,
+                    "detected_at_ms": 15160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 16000,
+                    "detected_at_ms": 16000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 16240,
+                    "detected_at_ms": 16240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 16500,
+                    "detected_at_ms": 16500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 20160,
+                    "detected_at_ms": 20160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 21000,
+                    "detected_at_ms": 21000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 21240,
+                    "detected_at_ms": 21240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 21500,
+                    "detected_at_ms": 21500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 25160,
+                    "detected_at_ms": 25160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 26000,
+                    "detected_at_ms": 26000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 26240,
+                    "detected_at_ms": 26240,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 26500,
+                    "detected_at_ms": 26500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 30160,
+                    "detected_at_ms": 30160,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 30460,
+                    "detected_at_ms": 30460,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 31200,
+                    "detected_at_ms": 31200,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "speech.started",
+                    "at_ms": 31200,
+                    "detected_at_ms": 31200,
+                    "signal": "voice_like",
+                    "reason": "voice_like"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 31500,
+                    "detected_at_ms": 31500,
+                    "signal": "voice_like",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "speech.ended",
+                    "at_ms": 33020,
+                    "detected_at_ms": 33020,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33020,
+                    "detected_at_ms": 33020,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33440,
+                    "detected_at_ms": 33440,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33600,
+                    "detected_at_ms": 33600,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37260,
+                    "detected_at_ms": 37260,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37540,
+                    "detected_at_ms": 37540,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                }
+            ]
+        },
+        {
+            "offset_ms": 110,
+            "events_relative_ms": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1120,
+                    "detected_at_ms": 1120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 5060,
+                    "detected_at_ms": 5060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6120,
+                    "detected_at_ms": 6120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 10060,
+                    "detected_at_ms": 10060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 11000,
+                    "detected_at_ms": 11000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 11120,
+                    "detected_at_ms": 11120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 11500,
+                    "detected_at_ms": 11500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 15060,
+                    "detected_at_ms": 15060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 16000,
+                    "detected_at_ms": 16000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 16120,
+                    "detected_at_ms": 16120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 16500,
+                    "detected_at_ms": 16500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 20060,
+                    "detected_at_ms": 20060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 21000,
+                    "detected_at_ms": 21000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 21120,
+                    "detected_at_ms": 21120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 21500,
+                    "detected_at_ms": 21500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 25060,
+                    "detected_at_ms": 25060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 26000,
+                    "detected_at_ms": 26000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 26120,
+                    "detected_at_ms": 26120,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 26500,
+                    "detected_at_ms": 26500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 30060,
+                    "detected_at_ms": 30060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 30360,
+                    "detected_at_ms": 30360,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 30500,
+                    "detected_at_ms": 30500,
+                    "signal": "silence",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 31080,
+                    "detected_at_ms": 31080,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "speech.started",
+                    "at_ms": 31080,
+                    "detected_at_ms": 31080,
+                    "signal": "voice_like",
+                    "reason": "voice_like"
+                },
+                {
+                    "type": "speech.ended",
+                    "at_ms": 32920,
+                    "detected_at_ms": 32920,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 32920,
+                    "detected_at_ms": 32920,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33360,
+                    "detected_at_ms": 33360,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33500,
+                    "detected_at_ms": 33500,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37300,
+                    "detected_at_ms": 37300,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37440,
+                    "detected_at_ms": 37440,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                }
+            ]
+        },
+        {
+            "offset_ms": 200,
+            "events_relative_ms": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 60,
+                    "detected_at_ms": 60,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 1000,
+                    "detected_at_ms": 1000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 1040,
+                    "detected_at_ms": 1040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 1500,
+                    "detected_at_ms": 1500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 4960,
+                    "detected_at_ms": 4960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 5000,
+                    "detected_at_ms": 5000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 6000,
+                    "detected_at_ms": 6000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 6040,
+                    "detected_at_ms": 6040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 6500,
+                    "detected_at_ms": 6500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 9960,
+                    "detected_at_ms": 9960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 10000,
+                    "detected_at_ms": 10000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 11000,
+                    "detected_at_ms": 11000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 11000,
+                    "detected_at_ms": 11000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 11040,
+                    "detected_at_ms": 11040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 11500,
+                    "detected_at_ms": 11500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 14960,
+                    "detected_at_ms": 14960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 15000,
+                    "detected_at_ms": 15000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 16000,
+                    "detected_at_ms": 16000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 16000,
+                    "detected_at_ms": 16000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 16040,
+                    "detected_at_ms": 16040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 16500,
+                    "detected_at_ms": 16500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 19960,
+                    "detected_at_ms": 19960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 20000,
+                    "detected_at_ms": 20000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 21000,
+                    "detected_at_ms": 21000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 21000,
+                    "detected_at_ms": 21000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 21040,
+                    "detected_at_ms": 21040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 21500,
+                    "detected_at_ms": 21500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 24960,
+                    "detected_at_ms": 24960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 25000,
+                    "detected_at_ms": 25000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "ring.started",
+                    "at_ms": 26000,
+                    "detected_at_ms": 26000,
+                    "signal": "narrowband_tone",
+                    "reason": "qualified_tone"
+                },
+                {
+                    "type": "ring.cadence_detected",
+                    "at_ms": 26000,
+                    "detected_at_ms": 26000,
+                    "signal": "narrowband_tone",
+                    "reason": "compatible_period",
+                    "period_ms": 5000
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 26040,
+                    "detected_at_ms": 26040,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.ended",
+                    "at_ms": 26500,
+                    "detected_at_ms": 26500,
+                    "signal": "silence",
+                    "reason": "tone_ended"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 29960,
+                    "detected_at_ms": 29960,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "ring.interrupted",
+                    "at_ms": 30000,
+                    "detected_at_ms": 30000,
+                    "signal": "narrowband_tone",
+                    "reason": "other_audio"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 30260,
+                    "detected_at_ms": 30260,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 31000,
+                    "detected_at_ms": 31000,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "speech.started",
+                    "at_ms": 31000,
+                    "detected_at_ms": 31000,
+                    "signal": "voice_like",
+                    "reason": "voice_like"
+                },
+                {
+                    "type": "speech.ended",
+                    "at_ms": 32820,
+                    "detected_at_ms": 32820,
+                    "signal": "voice_like",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 32820,
+                    "detected_at_ms": 32820,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33240,
+                    "detected_at_ms": 33240,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 33400,
+                    "detected_at_ms": 33400,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37060,
+                    "detected_at_ms": 37060,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 37340,
+                    "detected_at_ms": 37340,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                }
+            ]
+        },
+        {
+            "offset_ms": 33320,
+            "events_relative_ms": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 120,
+                    "detected_at_ms": 120,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 280,
+                    "detected_at_ms": 280,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                }
+            ]
+        },
+        {
+            "offset_ms": 37180,
+            "events_relative_ms": [
+                {
+                    "type": "signal.changed",
+                    "at_ms": 80,
+                    "detected_at_ms": 80,
+                    "signal": "narrowband_tone",
+                    "reason": "classification_changed"
+                },
+                {
+                    "type": "signal.changed",
+                    "at_ms": 360,
+                    "detected_at_ms": 360,
+                    "signal": "silence",
+                    "reason": "classification_changed"
+                }
+            ]
+        }
+    ]
+}

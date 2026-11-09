@@ -1,0 +1,22 @@
+{
+    "white_noise": {
+        "event_counts": [],
+        "pcm_signal": "noise"
+    },
+    "chord": {
+        "event_counts": [],
+        "pcm_signal": "other_audio"
+    },
+    "am_chord": {
+        "event_counts": {
+            "speech.started": 1
+        },
+        "pcm_signal": "music_like"
+    },
+    "speech_tts": {
+        "event_counts": {
+            "speech.started": 4
+        },
+        "pcm_signal": "voice_like"
+    }
+}

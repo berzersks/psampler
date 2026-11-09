@@ -1,0 +1,27 @@
+# Normalize text on add and keep LF in working trees; detect other text automatically.
+* text=auto eol=lf
+
+*.php text eol=lf
+*.phpt text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.inc text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.go text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.txt text eol=lf
+
+# Audio fixtures and other binary assets must never undergo line conversion.
+*.pcm binary -eol
+*.wav binary -eol
+*.png binary -eol
+*.jpg binary -eol
+*.jpeg binary -eol
+*.gif binary -eol
+*.pdf binary -eol
+*.zip binary -eol
+*.gz binary -eol
